@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { float, int, number, string } from './core'
+import { float, int, number, object, string } from './core'
 
 describe('string parser', () => {
   it('should auto convert number into string', () => {
@@ -39,8 +39,15 @@ describe('number parser', () => {
   it('should reject null', () => {
     expect(() => number().parse(null)).to.throw('Invalid number, got null')
   })
-  it('should alias to float parser', () => {
-    expect(number).to.equals(float)
+  it('should reject small value', () => {
+    expect(() => number({ min: 50 }).parse(49)).to.throw(
+      'Invalid number, min value should be 50',
+    )
+  })
+  it('should reject big value', () => {
+    expect(() => number({ max: 50 }).parse(51)).to.throw(
+      'Invalid number, max value should be 50',
+    )
   })
 })
 
@@ -50,13 +57,56 @@ describe('int parser', () => {
   })
   it('should reject floating point numbers', () => {
     expect(() => int().parse(4.2)).to.throw(
-      'Invalid number, got floating point number',
+      'Invalid int, got floating point number',
     )
   })
   it('should reject NaN', () => {
-    expect(() => int().parse(NaN)).to.throw('Invalid number, got NaN')
+    expect(() => int().parse(NaN)).to.throw('Invalid int, got NaN')
   })
   it('should reject null', () => {
-    expect(() => int().parse(null)).to.throw('Invalid number, got null')
+    expect(() => int().parse(null)).to.throw('Invalid int, got null')
+  })
+})
+
+describe('float parser', () => {
+  it('should indicate floating point number in error message', () => {
+    it('should reject null', () => {
+      expect(() => float().parse(null)).to.throw('Invalid float, got null')
+    })
+  })
+})
+
+describe('object parser', () => {
+  it('should reject null', () => {
+    expect(() => object().parse(null)).to.throw('Invalid object, got null')
+  })
+  it('should reject undefined', () => {
+    expect(() => object().parse(undefined)).to.throw(
+      'Invalid object, got undefined',
+    )
+  })
+  it('should reject missing field', () => {
+    expect(() =>
+      object({
+        username: string(),
+      }).parse({}),
+    ).to.throw('Invalid object, missing "username"')
+    expect(() =>
+      object({
+        username: string(),
+        password: string(),
+      }).parse({
+        username: 'alice',
+      }),
+    ).to.throw('Invalid object, missing "password"')
+  })
+  it('should show error message in with object field name', () => {
+    expect(() =>
+      object({
+        username: string({ minLength: 3 }),
+      }).parse({
+        username: 'it',
+      }),
+    ).to.throw('Invalid string "username", minLength should be 3')
   })
 })
