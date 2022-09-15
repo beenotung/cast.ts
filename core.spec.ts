@@ -49,6 +49,9 @@ describe('number parser', () => {
       'Invalid number, max value should be 50',
     )
   })
+  it('should allow negative numbers', () => {
+    expect(number().parse(-42)).to.equals(-42)
+  })
 })
 
 describe('int parser', () => {
@@ -66,6 +69,9 @@ describe('int parser', () => {
   it('should reject null', () => {
     expect(() => int().parse(null)).to.throw('Invalid int, got null')
   })
+  it('should allow negative integer', () => {
+    expect(number().parse(-42)).to.equals(-42)
+  })
 })
 
 describe('float parser', () => {
@@ -73,6 +79,9 @@ describe('float parser', () => {
     it('should reject null', () => {
       expect(() => float().parse(null)).to.throw('Invalid float, got null')
     })
+  })
+  it('should allow negative integer', () => {
+    expect(number().parse(-42)).to.equals(-42)
   })
 })
 
