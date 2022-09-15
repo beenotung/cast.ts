@@ -7,12 +7,12 @@ export type ParserContext = {
   name?: string
 }
 
-type InvalidInputErrorOptions = {
+export type InvalidInputErrorOptions = {
   name: string | undefined
   expectedType: string
   reason: string
 }
-class InvalidInputError extends Error {
+export class InvalidInputError extends Error {
   constructor(options: InvalidInputErrorOptions) {
     let message = `Invalid ${options.expectedType}`
     if (options.name) {
