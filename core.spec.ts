@@ -21,6 +21,12 @@ describe('string parser', () => {
   it('should reject NaN', () => {
     expect(() => string().parse(NaN)).to.throw('Invalid string, got NaN')
   })
+  it('should match with regex', () => {
+    expect(string({ match: /2/ }).parse('42')).to.equals('42')
+    expect(() => string({ match: /a-z/ }).parse('42')).to.throw(
+      'Invalid string, should match /a-z/',
+    )
+  })
   it('should allow non-empty string', () => {
     expect(string().parse('42')).to.equals('42')
   })

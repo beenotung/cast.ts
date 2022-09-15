@@ -36,6 +36,7 @@ function toType(input: unknown): string {
 export type StringOptions = {
   minLength?: number
   maxLength?: number
+  match?: RegExp
 }
 export function string(options: StringOptions = {}) {
   function parse(input: unknown, context: ParserContext = {}): string {
@@ -71,6 +72,15 @@ export function string(options: StringOptions = {}) {
           name: context.name,
           expectedType: 'string',
           reason: 'maxLength should be ' + options.maxLength,
+        })
+      }
+    }
+    if (options.match) {
+      if (!options.match.test(input)) {
+        throw new InvalidInputError({
+          name: context.name,
+          expectedType: 'string',
+          reason: 'should match ' + options.match,
         })
       }
     }
