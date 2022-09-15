@@ -113,13 +113,40 @@ describe('object parser', () => {
       }),
     ).to.throw('Invalid object, missing "password"')
   })
-  it('should show error message in with object field name', () => {
-    expect(() =>
-      object({
-        username: string({ minLength: 3 }),
-      }).parse({
-        username: 'it',
-      }),
-    ).to.throw('Invalid string "username", minLength should be 3')
+  describe('field name in error message', () => {
+    it('should show object property key', () => {
+      expect(() =>
+        object({
+          username: string({ minLength: 3 }),
+        }).parse({
+          username: 'it',
+        }),
+      ).to.throw('Invalid string "username", minLength should be 3')
+    })
+    it('should show nested field name', () => {
+      expect(() =>
+        object({
+          body: object({
+            username: string({ minLength: 3 }),
+          }),
+        }).parse({
+          body: { username: 'it' },
+        }),
+      ).to.throw('Invalid string "body.username", minLength should be 3')
+    })
+    it('should show custom field name', () => {
+      expect(() =>
+        object({
+          body: object({
+            username: string({ minLength: 3 }),
+          }),
+        }).parse(
+          {
+            body: { username: 'it' },
+          },
+          { name: 'req' },
+        ),
+      ).to.throw('Invalid string "req.body.username", minLength should be 3')
+    })
   })
 })

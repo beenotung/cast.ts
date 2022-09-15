@@ -201,7 +201,7 @@ export function object<T extends object>(
         })
       }
       let valueInput = input[key as keyof typeof input]
-      let value = valueParser.parse(valueInput, { name: key })
+      let value = valueParser.parse(valueInput, { name: concatName(name, key) })
       object[key] = value
     }
     return object
