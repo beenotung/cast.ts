@@ -156,11 +156,14 @@ export function int(options: NumberOptions = {}) {
   return { parse, options }
 }
 
-export type ObjectOptions = {
-  [key: string]: Parser<unknown>
+export type ObjectOptions<T extends object> = {
+  [P in keyof T]: Parser<T[P]>
 }
-export function object(options: ObjectOptions = {}) {
-  function parse(input: unknown, context: ParserContext = {}): object {
+
+export function object<T extends object>(
+  options: ObjectOptions<T> = {} as any,
+) {
+  function parse(input: unknown, context: ParserContext = {}): T {
     let name = context.name
     if (input === null) {
       throw new InvalidInputError({
@@ -176,7 +179,7 @@ export function object(options: ObjectOptions = {}) {
         reason: 'got ' + toType(input),
       })
     }
-    let object: Record<string, unknown> = {}
+    let object: T = {} as any
     for (let key in options) {
       let valueParser = options[key]
       // TODO check for optional field
