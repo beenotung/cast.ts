@@ -209,6 +209,26 @@ export function object<T extends object>(
   return { parse, options }
 }
 
+
+export function boolean(expectedValue?: boolean) {
+  if (expectedValue !== undefined) {
+    expectedValue = !!expectedValue
+  }
+  function parse(input: unknown, context: ParserContext = {}): boolean {
+    let value = !!input
+    if (typeof expectedValue === 'boolean') {
+      if (value !== expectedValue) {
+        throw new InvalidInputError({
+          name: context.name,
+          expectedType: 'boolean',
+          reason: 'got ' + input,
+        })
+      }
+    }
+    return value
+  }
+  return { parse, expectedValue }
+}
 function concatName(name: string | undefined, key: string): string {
   if (name) {
     return name + '.' + key

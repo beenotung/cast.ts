@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { float, int, number, object, string } from './core'
+import { boolean, float, int, number, object, string } from './core'
 
 describe('string parser', () => {
   it('should auto convert number into string', () => {
@@ -86,6 +86,21 @@ describe('float parser', () => {
   })
   it('should allow negative integer', () => {
     expect(number().parse(-42)).to.equals(-42)
+  })
+})
+
+describe('boolean parser', () => {
+  it('should allow truthy value', () => {
+    expect(boolean(true).parse(true)).to.equals(true)
+    expect(boolean(true).parse(1)).to.equals(true)
+    expect(boolean(true).parse(' ')).to.equals(true)
+  })
+  it('should allow falsy value', () => {
+    expect(boolean(false).parse(false)).to.equals(false)
+    expect(boolean(false).parse(0)).to.equals(false)
+    expect(boolean(false).parse('')).to.equals(false)
+    expect(boolean(false).parse(null)).to.equals(false)
+    expect(boolean(false).parse(undefined)).to.equals(false)
   })
 })
 
