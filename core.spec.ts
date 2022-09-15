@@ -76,9 +76,7 @@ describe('int parser', () => {
 
 describe('float parser', () => {
   it('should indicate floating point number in error message', () => {
-    it('should reject null', () => {
-      expect(() => float().parse(null)).to.throw('Invalid float, got null')
-    })
+    expect(() => float().parse(null)).to.throw('Invalid float, got null')
   })
   it('should allow negative integer', () => {
     expect(number().parse(-42)).to.equals(-42)
