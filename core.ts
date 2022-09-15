@@ -192,8 +192,10 @@ export function object<T extends object>(
     let object: T = {} as any
     for (let key in options) {
       let valueParser = options[key]
-      // TODO check for optional field
       if (!(key in input)) {
+        if (isOptional(valueParser)) {
+          continue
+        }
         throw new InvalidInputError({
           name,
           expectedType: 'object',
@@ -209,6 +211,13 @@ export function object<T extends object>(
   return { parse, options }
 }
 
+export function optional<T>(parser: Parser<T>) {
+  return Object.assign(parser, { optional: true })
+}
+
+function isOptional(parser: Parser<unknown>): boolean {
+  return (parser as any).optional
+}
 
 export function boolean(expectedValue?: boolean) {
   if (expectedValue !== undefined) {
@@ -229,6 +238,7 @@ export function boolean(expectedValue?: boolean) {
   }
   return { parse, expectedValue }
 }
+
 function concatName(name: string | undefined, key: string): string {
   if (name) {
     return name + '.' + key

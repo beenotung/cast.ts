@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { boolean, float, int, number, object, string } from './core'
+import { boolean, float, int, number, object, optional, string } from './core'
 
 describe('string parser', () => {
   it('should auto convert number into string', () => {
@@ -162,6 +162,32 @@ describe('object parser', () => {
           { name: 'req' },
         ),
       ).to.throw('Invalid string "req.body.username", minLength should be 3')
+    })
+  })
+  it('should allow skipping optional field', () => {
+    expect(
+      object({
+        username: string(),
+        is_admin: optional(boolean()),
+      }).parse({
+        username: 'alice',
+      }),
+    ).to.deep.equals({
+      username: 'alice',
+    })
+  })
+  it('should allow providing optional field', () => {
+    expect(
+      object({
+        username: string(),
+        is_admin: optional(boolean()),
+      }).parse({
+        username: 'alice',
+        is_admin: true,
+      }),
+    ).to.deep.equals({
+      username: 'alice',
+      is_admin: true,
     })
   })
 })
