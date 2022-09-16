@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import {
   boolean,
   date,
+  email,
   float,
   int,
   number,
@@ -234,7 +235,9 @@ describe('url parser', () => {
     expect(() => url().parse(null)).to.throws('Invalid url, got null')
   })
   it('should reject empty string', () => {
-    expect(() => url().parse('')).to.throws('Invalid url, got empty string')
+    expect(() => url({ nonEmpty: true }).parse('')).to.throws(
+      'Invalid non-empty url, got empty string',
+    )
   })
   it('should reject wrong protocol', () => {
     expect(() =>
@@ -252,5 +255,26 @@ describe('url parser', () => {
         'https://example.net/home',
       ),
     ).to.equals('https://example.net/home')
+  })
+})
+
+describe('email parser', () => {
+  it('should reject null', () => {
+    expect(() => email().parse(null)).to.throws('Invalid email, got null')
+  })
+  it('should reject empty string', () => {
+    expect(() => email({ nonEmpty: true }).parse('')).to.throws(
+      'Invalid non-empty email, got empty string',
+    )
+  })
+  it('should reject wrong domain', () => {
+    expect(() =>
+      email({ domain: 'example.net' }).parse('user@example.com'),
+    ).to.throws('Invalid email, domain should be "example.net"')
+  })
+  it('should pass valid email', () => {
+    expect(
+      email({ domain: 'example.net' }).parse('user@example.net'),
+    ).to.equals('user@example.net')
   })
 })

@@ -37,6 +37,7 @@ function toType(input: unknown): string {
 }
 
 export type StringOptions = {
+  nonEmpty?: boolean
   minLength?: number
   maxLength?: number
   match?: RegExp
@@ -44,6 +45,18 @@ export type StringOptions = {
 export function string(options: StringOptions = {}) {
   function parse(input: unknown, context: ParserContext = {}): string {
     let expectedType = context.overrideType || 'string'
+    if (options.nonEmpty) {
+      if (!expectedType.startsWith('non-empty ')) {
+        expectedType = 'non-empty ' + expectedType
+      }
+      if (input === '') {
+        throw new InvalidInputError({
+          name: context.name,
+          expectedType,
+          reason: 'got empty string',
+        })
+      }
+    }
     if (typeof input === 'number') {
       if (Number.isNaN(input)) {
         throw new InvalidInputError({
@@ -101,22 +114,17 @@ export type UrlOptions = StringOptions & {
 export function url(options: UrlOptions = {}) {
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
+    if (!options.nonEmpty && input === '') return ''
+    let expectedType = context.overrideType || 'url'
     let url = parser.parse(input, {
       ...context,
-      overrideType: context.overrideType || 'url',
+      overrideType: expectedType,
     })
-    if (!url) {
-      throw new InvalidInputError({
-        name: context.name,
-        expectedType: 'url',
-        reason: 'got empty string',
-      })
-    }
     let match = url.match(urlRegex)
     if (!match) {
       throw new InvalidInputError({
         name: context.name,
-        expectedType: 'url',
+        expectedType,
         reason: 'should contains protocol and domain/host',
       })
     }
@@ -125,20 +133,54 @@ export function url(options: UrlOptions = {}) {
     if (typeof options.protocol === 'string' && protocol !== options.protocol) {
       throw new InvalidInputError({
         name: context.name,
-        expectedType: 'url',
+        expectedType,
         reason: 'protocol should be ' + JSON.stringify(options.protocol),
       })
     }
     if (typeof options.domain === 'string' && domain !== options.domain) {
       throw new InvalidInputError({
         name: context.name,
-        expectedType: 'url',
+        expectedType,
         reason: 'domain should be ' + JSON.stringify(options.domain),
       })
     }
     return url
   }
-  return { parse }
+  return { parse, options }
+}
+
+let emailRegex = /^.+?@(.+)$/
+export type EmailOptions = StringOptions & {
+  domain?: string
+}
+export function email(options: EmailOptions = {}) {
+  let parser = string(options)
+  function parse(input: unknown, context: ParserContext = {}): string {
+    if (!options.nonEmpty && input === '') return ''
+    let expectedType = context.overrideType || 'email'
+    let email = parser.parse(input, {
+      ...context,
+      overrideType: expectedType,
+    })
+    let match = email.match(emailRegex)
+    if (!match) {
+      throw new InvalidInputError({
+        name: context.name,
+        expectedType,
+        reason: 'should contains "@" and domain',
+      })
+    }
+    let domain = match[1]
+    if (typeof options.domain === 'string' && domain !== options.domain) {
+      throw new InvalidInputError({
+        name: context.name,
+        expectedType,
+        reason: 'domain should be ' + JSON.stringify(options.domain),
+      })
+    }
+    return email
+  }
+  return { parse, options }
 }
 
 export type NumberOptions = {
