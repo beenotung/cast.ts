@@ -1,5 +1,15 @@
 import { expect } from 'chai'
-import { boolean, float, int, number, object, optional, string } from './core'
+import {
+  boolean,
+  date,
+  float,
+  int,
+  number,
+  object,
+  optional,
+  string,
+  url,
+} from './core'
 
 describe('string parser', () => {
   it('should auto convert number into string', () => {
@@ -189,5 +199,58 @@ describe('object parser', () => {
       username: 'alice',
       is_admin: true,
     })
+  })
+})
+
+describe('date parser', () => {
+  it('should reject null', () => {
+    expect(() => date().parse(null)).to.throw('Invalid date, got null')
+  })
+  it('should reject undefined', () => {
+    expect(() => date().parse(undefined)).to.throw(
+      'Invalid date, got undefined',
+    )
+  })
+  it('should reject empty string', () => {
+    expect(() => date().parse('')).to.throw('Invalid date, got empty string')
+  })
+  it('should accept int timestamp', () => {
+    let now = Date.now()
+    expect(date().parse(now)).to.deep.equals(new Date(now))
+  })
+  it('should accept date instance', () => {
+    let now = new Date()
+    expect(date().parse(now)).to.deep.equals(now)
+  })
+  it('should not modify date timestamp', () => {
+    let timestamp = Date.now()
+    let dateInstance = date().parse(timestamp)
+    expect(dateInstance.getTime()).to.equals(timestamp)
+  })
+})
+
+describe('url parser', () => {
+  it('should reject null', () => {
+    expect(() => url().parse(null)).to.throws('Invalid url, got null')
+  })
+  it('should reject empty string', () => {
+    expect(() => url().parse('')).to.throws('Invalid url, got empty string')
+  })
+  it('should reject wrong protocol', () => {
+    expect(() =>
+      url({ protocol: 'http' }).parse('ftp://example.com'),
+    ).to.throws('Invalid url, protocol should be "http"')
+  })
+  it('should reject wrong domain', () => {
+    expect(() =>
+      url({ domain: 'example.net' }).parse('ftp://example.com'),
+    ).to.throws('Invalid url, domain should be "example.net"')
+  })
+  it('should pass valid url', () => {
+    expect(
+      url({ protocol: 'https', domain: 'example.net' }).parse(
+        'https://example.net/home',
+      ),
+    ).to.equals('https://example.net/home')
   })
 })
