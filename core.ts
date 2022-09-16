@@ -230,7 +230,7 @@ export function boolean(expectedValue?: boolean) {
         throw new InvalidInputError({
           name: context.name,
           expectedType: 'boolean',
-          reason: 'got ' + input,
+          reason: 'got ' + toType(input),
         })
       }
     }
