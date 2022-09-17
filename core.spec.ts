@@ -53,7 +53,7 @@ describe('number parser', () => {
   it('should pass integer', () => {
     expect(number().parse(42)).to.equals(42)
   })
-  it('should not reject floating point numbers', () => {
+  it('should pass floating point numbers', () => {
     expect(number().parse(4.2)).to.equals(4.2)
   })
   it('should reject NaN', () => {
