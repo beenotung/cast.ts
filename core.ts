@@ -333,17 +333,48 @@ export function boolean(expectedValue?: boolean) {
   return { parse, expectedValue }
 }
 
-export function date() {
+let parseDate = date().parse
+export type DateOptions = {
+  min?: number | Date | string
+  max?: number | Date | string
+}
+export function date(options: DateOptions = {}) {
   function parse(input: unknown, context: ParserContext = {}): Date {
-    function checkDate(date: Date): Date {
-      if (Number.isNaN(date.getTime())) {
+    function checkDate(value: Date): Date {
+      let time = value.getTime()
+      if (Number.isNaN(time)) {
         throw new InvalidInputError({
           name: context.name,
           expectedType: 'date',
           reason: 'got ' + toType(input),
         })
       }
-      return date
+      let rangeNameSuffix = ' of ' + (context.name || 'date')
+      if (options.min !== undefined) {
+        let min = parseDate(options.min, {
+          name: 'min value' + rangeNameSuffix,
+        }).getTime()
+        if (time < min) {
+          throw new InvalidInputError({
+            name: context.name,
+            expectedType: 'date',
+            reason: 'min value should be ' + JSON.stringify(options.min),
+          })
+        }
+      }
+      if (options.max !== undefined) {
+        let max = parseDate(options.max, {
+          name: 'max value' + rangeNameSuffix,
+        }).getTime()
+        if (time > max) {
+          throw new InvalidInputError({
+            name: context.name,
+            expectedType: 'date',
+            reason: 'max value should be ' + JSON.stringify(options.max),
+          })
+        }
+      }
+      return value
     }
     if (input instanceof Date) {
       return checkDate(input)
@@ -360,7 +391,7 @@ export function date() {
       reason: 'got ' + toType(input),
     })
   }
-  return { parse }
+  return { parse, options }
 }
 
 function concatName(name: string | undefined, key: string): string {

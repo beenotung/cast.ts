@@ -228,6 +228,23 @@ describe('date parser', () => {
     let dateInstance = date().parse(timestamp)
     expect(dateInstance.getTime()).to.equals(timestamp)
   })
+  it('should reject too old date', () => {
+    expect(() => date({ min: '2022-09-17' }).parse('2021-09-17')).to.throws(
+      'Invalid date, min value should be "2022-09-17"',
+    )
+  })
+  it('should reject too new date', () => {
+    expect(() => date({ max: '2022-09-17' }).parse('2023-09-17')).to.throws(
+      'Invalid date, max value should be "2022-09-17"',
+    )
+  })
+  it('should accept value date within range', () => {
+    expect(
+      date({ min: '2022-01-01 00:00:00', max: '2022-12-31 23:59:59' }).parse(
+        '2022-09-17',
+      ),
+    ).to.deep.equals(new Date('2022-09-17'))
+  })
 })
 
 describe('url parser', () => {
