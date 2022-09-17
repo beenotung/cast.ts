@@ -5,11 +5,13 @@ import {
   email,
   float,
   int,
+  literal,
   number,
   object,
   optional,
   string,
   url,
+  values,
 } from './core'
 
 describe('string parser', () => {
@@ -296,5 +298,34 @@ describe('email parser', () => {
   })
   it('should pass valid email', () => {
     expect(email().parse('user@example.net')).to.equals('user@example.net')
+  })
+})
+
+describe('literal parser', () => {
+  it('should reject wrong value', () => {
+    expect(() => literal('guest').parse(null)).to.throws(
+      'Invalid literal "guest", got null',
+    )
+  })
+  it('should pass matched value', () => {
+    expect(literal('guest').parse('guest')).to.equals('guest')
+  })
+})
+
+describe('enum values parser', () => {
+  it('should reject wrong value with custom name', () => {
+    expect(() =>
+      values(['guest', 'customer', 'shop']).parse(null, { name: 'role' }),
+    ).to.throws('Invalid enum value "role", got null')
+  })
+  it('should reject wrong value without custom name', () => {
+    expect(() => values(['guest', 'customer', 'shop']).parse(null)).to.throws(
+      'Invalid enum value ["guest","customer","shop"], got null',
+    )
+  })
+  it('should pass matched value', () => {
+    expect(values(['guest', 'customer', 'shop']).parse('guest')).to.equals(
+      'guest',
+    )
   })
 })

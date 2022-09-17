@@ -394,6 +394,32 @@ export function date(options: DateOptions = {}) {
   return { parse, options }
 }
 
+export function literal<T>(value: T) {
+  function parse(input: unknown, context: ParserContext = {}): T {
+    if (input === value) return value
+    throw new InvalidInputError({
+      name: context.name,
+      expectedType: 'literal ' + JSON.stringify(value),
+      reason: 'got ' + toType(input),
+    })
+  }
+  return { parse, value }
+}
+
+export function values<T>(values: T[]) {
+  function parse(input: unknown, context: ParserContext = {}): T {
+    for (let value of values) {
+      if (input === value) return value
+    }
+    throw new InvalidInputError({
+      name: undefined,
+      expectedType: 'enum value ' + JSON.stringify(context.name || values),
+      reason: 'got ' + toType(input),
+    })
+  }
+  return { parse, values }
+}
+
 function concatName(name: string | undefined, key: string): string {
   if (name) {
     return name + '.' + key
