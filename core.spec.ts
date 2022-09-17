@@ -6,6 +6,7 @@ import {
   float,
   int,
   literal,
+  nullable,
   number,
   object,
   optional,
@@ -326,6 +327,20 @@ describe('enum values parser', () => {
   it('should pass matched value', () => {
     expect(values(['guest', 'customer', 'shop']).parse('guest')).to.equals(
       'guest',
+    )
+  })
+})
+
+describe('nullable parser', () => {
+  it('should pass null value', () => {
+    expect(nullable(string()).parse(null)).to.be.null
+  })
+  it('should pass non-null value', () => {
+    expect(nullable(string()).parse('guest')).to.equals('guest')
+  })
+  it('should reject not matched value', () => {
+    expect(() => nullable(string()).parse(undefined)).to.throws(
+      'Invalid nullable string, got undefined',
     )
   })
 })

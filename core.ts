@@ -3,18 +3,24 @@ export type Parser<T> = {
 }
 
 export type ParserContext = {
+  typePrefix?: string
   overrideType?: string
   name?: string
 }
 
 export type InvalidInputErrorOptions = {
   name: string | undefined
+  typePrefix: string | undefined
   expectedType: string
   reason: string
 }
 export class InvalidInputError extends Error {
   constructor(options: InvalidInputErrorOptions) {
-    let message = `Invalid ${options.expectedType}`
+    let message = `Invalid `
+    if (options.typePrefix) {
+      message += options.typePrefix + ' '
+    }
+    message += options.expectedType
     if (options.name) {
       message += ' ' + JSON.stringify(options.name)
     }
@@ -52,6 +58,7 @@ export function string(options: StringOptions = {}) {
       if (input === '') {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType,
           reason: 'got empty string',
         })
@@ -61,6 +68,7 @@ export function string(options: StringOptions = {}) {
       if (Number.isNaN(input)) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType,
           reason: 'got NaN',
         })
@@ -70,6 +78,7 @@ export function string(options: StringOptions = {}) {
     if (typeof input !== 'string') {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'got ' + toType(input),
       })
@@ -78,6 +87,7 @@ export function string(options: StringOptions = {}) {
       if (input.length < options.minLength) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType,
           reason: 'minLength should be ' + options.minLength,
         })
@@ -87,6 +97,7 @@ export function string(options: StringOptions = {}) {
       if (input.length > options.maxLength) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType,
           reason: 'maxLength should be ' + options.maxLength,
         })
@@ -96,6 +107,7 @@ export function string(options: StringOptions = {}) {
       if (!options.match.test(input)) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType,
           reason: 'should match ' + options.match,
         })
@@ -124,6 +136,7 @@ export function url(options: UrlOptions = {}) {
     if (!match) {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'should contains protocol and domain/host',
       })
@@ -133,6 +146,7 @@ export function url(options: UrlOptions = {}) {
     if (typeof options.protocol === 'string' && protocol !== options.protocol) {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'protocol should be ' + JSON.stringify(options.protocol),
       })
@@ -140,6 +154,7 @@ export function url(options: UrlOptions = {}) {
     if (typeof options.domain === 'string' && domain !== options.domain) {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'domain should be ' + JSON.stringify(options.domain),
       })
@@ -166,6 +181,7 @@ export function email(options: EmailOptions = {}) {
     if (!match) {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'should contains "@" and domain',
       })
@@ -174,6 +190,7 @@ export function email(options: EmailOptions = {}) {
     if (typeof options.domain === 'string' && domain !== options.domain) {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'domain should be ' + JSON.stringify(options.domain),
       })
@@ -196,6 +213,7 @@ export function number(options: NumberOptions = {}) {
     if (typeof input !== 'number') {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'got ' + toType(input),
       })
@@ -203,6 +221,7 @@ export function number(options: NumberOptions = {}) {
     if (Number.isNaN(input)) {
       throw new InvalidInputError({
         name: context.name,
+        typePrefix: context.typePrefix,
         expectedType,
         reason: 'got NaN',
       })
@@ -211,6 +230,7 @@ export function number(options: NumberOptions = {}) {
       if (input < options.min) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType,
           reason: 'min value should be ' + options.min,
         })
@@ -220,6 +240,7 @@ export function number(options: NumberOptions = {}) {
       if (input > options.max) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType,
           reason: 'max value should be ' + options.max,
         })
@@ -253,6 +274,7 @@ export function int(options: NumberOptions = {}) {
     }
     throw new InvalidInputError({
       name: context.name,
+      typePrefix: context.typePrefix,
       expectedType: 'int',
       reason: 'got floating point number',
     })
@@ -272,6 +294,7 @@ export function object<T extends object>(
     if (input === null) {
       throw new InvalidInputError({
         name,
+        typePrefix: context.typePrefix,
         expectedType: 'object',
         reason: 'got null',
       })
@@ -279,6 +302,7 @@ export function object<T extends object>(
     if (typeof input !== 'object') {
       throw new InvalidInputError({
         name,
+        typePrefix: context.typePrefix,
         expectedType: 'object',
         reason: 'got ' + toType(input),
       })
@@ -292,6 +316,7 @@ export function object<T extends object>(
         }
         throw new InvalidInputError({
           name,
+          typePrefix: context.typePrefix,
           expectedType: 'object',
           reason: 'missing ' + JSON.stringify(key),
         })
@@ -313,6 +338,17 @@ function isOptional(parser: Parser<unknown>): boolean {
   return (parser as any).optional
 }
 
+export function nullable<T>(parser: Parser<T>) {
+  function parse(input: unknown, context: ParserContext = {}): T | null {
+    if (input === null) return null
+    return parser.parse(input, {
+      ...context,
+      typePrefix: context.typePrefix || 'nullable',
+    })
+  }
+  return { parse, parser }
+}
+
 export function boolean(expectedValue?: boolean) {
   if (expectedValue !== undefined) {
     expectedValue = !!expectedValue
@@ -323,6 +359,7 @@ export function boolean(expectedValue?: boolean) {
       if (value !== expectedValue) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType: 'boolean',
           reason: 'got ' + toType(input),
         })
@@ -345,6 +382,7 @@ export function date(options: DateOptions = {}) {
       if (Number.isNaN(time)) {
         throw new InvalidInputError({
           name: context.name,
+          typePrefix: context.typePrefix,
           expectedType: 'date',
           reason: 'got ' + toType(input),
         })
@@ -357,6 +395,7 @@ export function date(options: DateOptions = {}) {
         if (time < min) {
           throw new InvalidInputError({
             name: context.name,
+            typePrefix: context.typePrefix,
             expectedType: 'date',
             reason: 'min value should be ' + JSON.stringify(options.min),
           })
@@ -369,6 +408,7 @@ export function date(options: DateOptions = {}) {
         if (time > max) {
           throw new InvalidInputError({
             name: context.name,
+            typePrefix: context.typePrefix,
             expectedType: 'date',
             reason: 'max value should be ' + JSON.stringify(options.max),
           })
@@ -387,6 +427,7 @@ export function date(options: DateOptions = {}) {
     }
     throw new InvalidInputError({
       name: context.name,
+      typePrefix: context.typePrefix,
       expectedType: 'date',
       reason: 'got ' + toType(input),
     })
@@ -399,6 +440,7 @@ export function literal<T>(value: T) {
     if (input === value) return value
     throw new InvalidInputError({
       name: context.name,
+      typePrefix: context.typePrefix,
       expectedType: 'literal ' + JSON.stringify(value),
       reason: 'got ' + toType(input),
     })
@@ -413,6 +455,7 @@ export function values<T>(values: T[]) {
     }
     throw new InvalidInputError({
       name: undefined,
+      typePrefix: context.typePrefix,
       expectedType: 'enum value ' + JSON.stringify(context.name || values),
       reason: 'got ' + toType(input),
     })
