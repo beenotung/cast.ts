@@ -1,5 +1,19 @@
 import { expect } from 'chai'
-import { boolean, float, int, number, object, optional, string } from './core'
+import {
+  boolean,
+  date,
+  email,
+  float,
+  int,
+  literal,
+  nullable,
+  number,
+  object,
+  optional,
+  string,
+  url,
+  values,
+} from './core'
 
 describe('string parser', () => {
   it('should auto convert number into string', () => {
@@ -189,5 +203,144 @@ describe('object parser', () => {
       username: 'alice',
       is_admin: true,
     })
+  })
+})
+
+describe('date parser', () => {
+  it('should reject null', () => {
+    expect(() => date().parse(null)).to.throw('Invalid date, got null')
+  })
+  it('should reject undefined', () => {
+    expect(() => date().parse(undefined)).to.throw(
+      'Invalid date, got undefined',
+    )
+  })
+  it('should reject empty string', () => {
+    expect(() => date().parse('')).to.throw('Invalid date, got empty string')
+  })
+  it('should accept int timestamp', () => {
+    let now = Date.now()
+    expect(date().parse(now)).to.deep.equals(new Date(now))
+  })
+  it('should accept date instance', () => {
+    let now = new Date()
+    expect(date().parse(now)).to.deep.equals(now)
+  })
+  it('should not modify date timestamp', () => {
+    let timestamp = Date.now()
+    let dateInstance = date().parse(timestamp)
+    expect(dateInstance.getTime()).to.equals(timestamp)
+  })
+  it('should reject too old date', () => {
+    expect(() => date({ min: '2022-09-17' }).parse('2021-09-17')).to.throws(
+      'Invalid date, min value should be "2022-09-17"',
+    )
+  })
+  it('should reject too new date', () => {
+    expect(() => date({ max: '2022-09-17' }).parse('2023-09-17')).to.throws(
+      'Invalid date, max value should be "2022-09-17"',
+    )
+  })
+  it('should accept value date within range', () => {
+    expect(
+      date({ min: '2022-01-01 00:00:00', max: '2022-12-31 23:59:59' }).parse(
+        '2022-09-17',
+      ),
+    ).to.deep.equals(new Date('2022-09-17'))
+  })
+})
+
+describe('url parser', () => {
+  it('should reject null', () => {
+    expect(() => url().parse(null)).to.throws('Invalid url, got null')
+  })
+  it('should reject empty string', () => {
+    expect(() => url({ nonEmpty: true }).parse('')).to.throws(
+      'Invalid non-empty url, got empty string',
+    )
+  })
+  it('should reject wrong protocol', () => {
+    expect(() =>
+      url({ protocol: 'http' }).parse('ftp://example.com'),
+    ).to.throws('Invalid url, protocol should be "http"')
+  })
+  it('should reject wrong domain', () => {
+    expect(() =>
+      url({ domain: 'example.net' }).parse('ftp://example.com'),
+    ).to.throws('Invalid url, domain should be "example.net"')
+  })
+  it('should pass valid url', () => {
+    expect(
+      url({ protocol: 'https', domain: 'example.net' }).parse(
+        'https://example.net/home',
+      ),
+    ).to.equals('https://example.net/home')
+  })
+})
+
+describe('email parser', () => {
+  it('should reject null', () => {
+    expect(() => email().parse(null)).to.throws('Invalid email, got null')
+  })
+  it('should reject empty string', () => {
+    expect(() => email({ nonEmpty: true }).parse('')).to.throws(
+      'Invalid non-empty email, got empty string',
+    )
+  })
+  it('should reject wrong domain', () => {
+    expect(() =>
+      email({ domain: 'example.net' }).parse('user@example.com'),
+    ).to.throws('Invalid email, domain should be "example.net"')
+  })
+  it('should pass matched domain', () => {
+    expect(
+      email({ domain: 'example.net' }).parse('user@example.net'),
+    ).to.equals('user@example.net')
+  })
+  it('should pass valid email', () => {
+    expect(email().parse('user@example.net')).to.equals('user@example.net')
+  })
+})
+
+describe('literal parser', () => {
+  it('should reject wrong value', () => {
+    expect(() => literal('guest').parse(null)).to.throws(
+      'Invalid literal "guest", got null',
+    )
+  })
+  it('should pass matched value', () => {
+    expect(literal('guest').parse('guest')).to.equals('guest')
+  })
+})
+
+describe('enum values parser', () => {
+  it('should reject wrong value with custom name', () => {
+    expect(() =>
+      values(['guest', 'customer', 'shop']).parse(null, { name: 'role' }),
+    ).to.throws('Invalid enum value "role", got null')
+  })
+  it('should reject wrong value without custom name', () => {
+    expect(() => values(['guest', 'customer', 'shop']).parse(null)).to.throws(
+      'Invalid enum value ["guest","customer","shop"], got null',
+    )
+  })
+  it('should pass matched value', () => {
+    expect(values(['guest', 'customer', 'shop']).parse('guest')).to.equals(
+      'guest',
+    )
+  })
+})
+
+describe('nullable parser', () => {
+  it('should pass null value', () => {
+    expect(nullable(string()).parse(null)).to.be.null
+  })
+  it('should pass non-null value', () => {
+    expect(nullable(string()).parse('guest')).to.equals('guest')
+  })
+  it('should reject not matched value', () => {
+    expect(() => nullable(string()).parse(undefined)).to.throws(
+      'Invalid nullable string, got undefined',
+    )
   })
 })
