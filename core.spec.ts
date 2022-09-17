@@ -272,9 +272,12 @@ describe('email parser', () => {
       email({ domain: 'example.net' }).parse('user@example.com'),
     ).to.throws('Invalid email, domain should be "example.net"')
   })
-  it('should pass valid email', () => {
+  it('should pass matched domain', () => {
     expect(
       email({ domain: 'example.net' }).parse('user@example.net'),
     ).to.equals('user@example.net')
+  })
+  it('should pass valid email', () => {
+    expect(email().parse('user@example.net')).to.equals('user@example.net')
   })
 })
