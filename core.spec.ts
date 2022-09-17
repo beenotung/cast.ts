@@ -48,6 +48,9 @@ describe('string parser', () => {
 
 describe('number parser', () => {
   it('should auto convert string to number', () => {
+    expect(number().parse('42')).to.equals(42)
+  })
+  it('should pass integer', () => {
     expect(number().parse(42)).to.equals(42)
   })
   it('should not reject floating point numbers', () => {
