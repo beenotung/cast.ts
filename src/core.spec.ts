@@ -364,6 +364,14 @@ describe('array parser', () => {
       'Invalid array, got empty string',
     )
   })
+  it('should auto wrap simple value into array', () => {
+    expect(array(string(), { maybeSingle: true }).parse('food')).to.deep.equals(
+      ['food'],
+    )
+    expect(
+      array(string(), { maybeSingle: true }).parse(['food']),
+    ).to.deep.equals(['food'])
+  })
   it('should pass empty array', () => {
     expect(array(string()).parse([])).to.deep.equals([])
   })

@@ -510,11 +510,15 @@ export function values<T>(values: T[]) {
 export type ArrayOptions = {
   minLength?: number
   maxLength?: number
+  maybeSingle?: boolean // to handle variadic value e.g. req.query.category
 }
 export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
   function parse(input: unknown, context: ParserContext = {}): T[] {
     let { typePrefix, reasonSuffix } = context
     let expectedType = context.overrideType || 'array'
+    if (!Array.isArray(input) && options.maybeSingle) {
+      input = [input]
+    }
     if (!Array.isArray(input)) {
       throw new InvalidInputError({
         name: context.name,
