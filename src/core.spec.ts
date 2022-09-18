@@ -359,10 +359,11 @@ describe('array parser', () => {
     expect(() => array(string()).parse(undefined)).to.throws(
       'Invalid array, got undefined',
     ))
-  it('should reject string', () =>
+  it('should reject string', () => {
     expect(() => array(string()).parse('')).to.throws(
       'Invalid array, got empty string',
-    ))
+    )
+  })
   it('should pass empty array', () => {
     expect(array(string()).parse([])).to.deep.equals([])
   })

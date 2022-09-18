@@ -1,6 +1,5 @@
 .dccache
-*.ts
-!*.d.ts
+src/
 tsconfig*
-*.spec.*
 *.tgz
+examples/
