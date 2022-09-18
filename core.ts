@@ -314,11 +314,12 @@ export function object<T extends object>(
 ) {
   function parse(input: unknown, context: ParserContext = {}): T {
     let name = context.name
+    let expectedType = context.overrideType || 'object'
     if (input === null) {
       throw new InvalidInputError({
         name,
         typePrefix: context.typePrefix,
-        expectedType: 'object',
+        expectedType,
         reason: 'got null',
         reasonSuffix: context.reasonSuffix,
       })
@@ -327,7 +328,7 @@ export function object<T extends object>(
       throw new InvalidInputError({
         name,
         typePrefix: context.typePrefix,
-        expectedType: 'object',
+        expectedType,
         reason: 'got ' + toType(input),
         reasonSuffix: context.reasonSuffix,
       })
@@ -342,7 +343,7 @@ export function object<T extends object>(
         throw new InvalidInputError({
           name,
           typePrefix: context.typePrefix,
-          expectedType: 'object',
+          expectedType,
           reason: 'missing ' + JSON.stringify(key),
           reasonSuffix: context.reasonSuffix,
         })
@@ -383,13 +384,14 @@ export function boolean(expectedValue?: boolean) {
     expectedValue = !!expectedValue
   }
   function parse(input: unknown, context: ParserContext = {}): boolean {
+    let expectedType = context.overrideType || 'boolean'
     let value = !!input
     if (typeof expectedValue === 'boolean') {
       if (value !== expectedValue) {
         throw new InvalidInputError({
           name: context.name,
           typePrefix: context.typePrefix,
-          expectedType: 'boolean',
+          expectedType,
           reason: 'got ' + toType(input),
           reasonSuffix: context.reasonSuffix,
         })
@@ -407,13 +409,14 @@ export type DateOptions = {
 }
 export function date(options: DateOptions = {}) {
   function parse(input: unknown, context: ParserContext = {}): Date {
+    let expectedType = context.overrideType || 'date'
     function checkDate(value: Date): Date {
       let time = value.getTime()
       if (Number.isNaN(time)) {
         throw new InvalidInputError({
           name: context.name,
           typePrefix: context.typePrefix,
-          expectedType: 'date',
+          expectedType,
           reason: 'got ' + toType(input),
           reasonSuffix: context.reasonSuffix,
         })
@@ -427,7 +430,7 @@ export function date(options: DateOptions = {}) {
           throw new InvalidInputError({
             name: context.name,
             typePrefix: context.typePrefix,
-            expectedType: 'date',
+            expectedType,
             reason: 'min value should be ' + JSON.stringify(options.min),
             reasonSuffix: context.reasonSuffix,
           })
@@ -441,7 +444,7 @@ export function date(options: DateOptions = {}) {
           throw new InvalidInputError({
             name: context.name,
             typePrefix: context.typePrefix,
-            expectedType: 'date',
+            expectedType,
             reason: 'max value should be ' + JSON.stringify(options.max),
             reasonSuffix: context.reasonSuffix,
           })
@@ -461,7 +464,7 @@ export function date(options: DateOptions = {}) {
     throw new InvalidInputError({
       name: context.name,
       typePrefix: context.typePrefix,
-      expectedType: 'date',
+      expectedType,
       reason: 'got ' + toType(input),
       reasonSuffix: context.reasonSuffix,
     })
@@ -472,10 +475,12 @@ export function date(options: DateOptions = {}) {
 export function literal<T>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
     if (input === value) return value
+    let expectedType =
+      context.overrideType || 'literal ' + JSON.stringify(value)
     throw new InvalidInputError({
       name: context.name,
       typePrefix: context.typePrefix,
-      expectedType: 'literal ' + JSON.stringify(value),
+      expectedType,
       reason: 'got ' + toType(input),
       reasonSuffix: context.reasonSuffix,
     })
@@ -509,11 +514,12 @@ export type ArrayOptions = {
 export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
   function parse(input: unknown, context: ParserContext = {}): T[] {
     let { typePrefix, reasonSuffix } = context
+    let expectedType = context.overrideType || 'array'
     if (!Array.isArray(input)) {
       throw new InvalidInputError({
         name: context.name,
         typePrefix,
-        expectedType: 'array',
+        expectedType,
         reason: 'got ' + toType(input),
         reasonSuffix,
       })
@@ -525,7 +531,7 @@ export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
       throw new InvalidInputError({
         name: context.name,
         typePrefix,
-        expectedType: 'array',
+        expectedType,
         reason: 'minLength should be ' + options.minLength,
         reasonSuffix,
       })
@@ -537,7 +543,7 @@ export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
       throw new InvalidInputError({
         name: context.name,
         typePrefix,
-        expectedType: 'array',
+        expectedType,
         reason: 'maxLength should be ' + options.maxLength,
         reasonSuffix,
       })
