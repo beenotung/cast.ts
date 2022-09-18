@@ -363,7 +363,7 @@ export function object<T extends object>(
   return { parse, options }
 }
 
-export function optional<T>(parser: Parser<T>) {
+export function optional<T>(parser: Parser<T>): Parser<T | undefined> {
   return Object.assign(parser, { optional: true })
 }
 
@@ -556,14 +556,16 @@ export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
         reasonSuffix,
       })
     }
+    let values: T[] = []
     for (let element of input) {
-      parser.parse(element, {
+      let value = parser.parse(element, {
         ...context,
         typePrefix: concat('array of', typePrefix),
         reasonSuffix: concat(reasonSuffix, 'in array'),
       })
+      values.push(value)
     }
-    return input
+    return values
   }
   return { parse, parser, options }
 }

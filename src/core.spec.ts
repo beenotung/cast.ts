@@ -372,6 +372,11 @@ describe('array parser', () => {
       array(string(), { maybeSingle: true }).parse(['food']),
     ).to.deep.equals(['food'])
   })
+  it('should convert string array to int array', () => {
+    expect(array(id(), { maybeSingle: true }).parse(['1', '2'])).to.deep.equals(
+      [1, 2],
+    )
+  })
   it('should pass empty array', () => {
     expect(array(string()).parse([])).to.deep.equals([])
   })
