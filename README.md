@@ -51,11 +51,11 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
 ## Supported Parsers
 
 - primary parsers
-  - string
+  - [string](#string)
   - number
   - int
   - float (alias of `number()`)
-  - id (alias of `int({ min: 1 })`)
+  - [id](#id) (alias of `int({ min: 1 })`)
   - boolean
   - object
   - date
@@ -68,7 +68,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - nullable
   - optional (for object fields)
 
-### General Type
+## Parser Types and Usage Examples
 
 **Utility type**:
 
@@ -116,3 +116,36 @@ type InvalidInputErrorOptions = {
   reason: string
 }
 ```
+
+### Primary Parsers
+
+#### String
+
+**Example**:
+
+```typescript
+// username is an non-empty string
+let username = string({ minLength: 3 }).parse(req.body.username)
+```
+
+**Options of string parser**:
+
+```typescript
+type StringOptions = {
+  nonEmpty?: boolean
+  minLength?: number
+  maxLength?: number
+  match?: RegExp
+}
+```
+
+#### Id
+
+**Example**:
+
+```typescript
+// cat_id is a non-zero integer
+let cat_id = id().parse(req.query.cat)
+```
+
+The id parser doesn't take additional options
