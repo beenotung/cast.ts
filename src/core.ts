@@ -572,11 +572,11 @@ export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
  * @description for parsing database auto-increment primary key
  */
 export function id() {
-  let parser = int({ min: 1 })
+  let parseInt = int({ min: 1 }).parse
   function parse(input: unknown, context: ParserContext = {}): number {
-    return parser.parse(input, { ...context, overrideType: 'id' })
+    return parseInt(input, { ...context, overrideType: 'id' })
   }
-  return { parse, parser }
+  return { parse }
 }
 
 function concat(
