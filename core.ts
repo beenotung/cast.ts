@@ -286,9 +286,10 @@ export function float(options: NumberOptions = {}) {
 export function int(options: NumberOptions = {}) {
   let parseNumber = number(options).parse
   function parse(input: unknown, context: ParserContext = {}): number {
+    let expectedType = context.overrideType || 'int'
     let value = parseNumber(input, {
       ...context,
-      overrideType: context.overrideType || 'int',
+      overrideType: expectedType,
     })
     if (Number.isInteger(value)) {
       return value
@@ -296,7 +297,7 @@ export function int(options: NumberOptions = {}) {
     throw new InvalidInputError({
       name: context.name,
       typePrefix: context.typePrefix,
-      expectedType: 'int',
+      expectedType,
       reason: 'got floating point number',
       reasonSuffix: context.reasonSuffix,
     })
@@ -548,6 +549,17 @@ export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
     return input
   }
   return { parse, parser, options }
+}
+
+/**
+ * @description for parsing database auto-increment primary key
+ */
+export function id() {
+  let parser = int({ min: 1 })
+  function parse(input: unknown, context: ParserContext = {}): number {
+    return parser.parse(input, { ...context, overrideType: 'id' })
+  }
+  return { parse, parser }
 }
 
 function concat(

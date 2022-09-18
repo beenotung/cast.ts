@@ -5,6 +5,7 @@ import {
   date,
   email,
   float,
+  id,
   int,
   literal,
   nullable,
@@ -385,5 +386,22 @@ describe('array parser', () => {
     expect(() =>
       array(string(), { maxLength: 2 }).parse(['alice', 'bob', 'charlie']),
     ).to.throws('Invalid array, maxLength should be 2')
+  })
+})
+
+describe('id parser', () => {
+  it('should reject number smaller than 1', () => {
+    expect(() => id().parse(0)).to.throws('Invalid id, min value should be 1')
+  })
+  it('should reject floating point number', () => {
+    expect(() => id().parse(1.5)).to.throws(
+      'Invalid id, got floating point number',
+    )
+  })
+  it('should reject null by default', () => {
+    expect(() => id().parse(null)).to.throws('Invalid id, got null')
+  })
+  it('should pass null value if wrapped', () => {
+    expect(nullable(id()).parse(null)).to.equals(null)
   })
 })
