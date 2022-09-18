@@ -1,3 +1,7 @@
+export type ParseResult<T extends Parser<R>, R = unknown> = ReturnType<
+  T['parse']
+>
+
 export type Parser<T> = {
   parse(input: unknown, context: ParserContext): T
 }
