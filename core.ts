@@ -488,10 +488,13 @@ export function values<T>(values: T[]) {
     for (let value of values) {
       if (input === value) return value
     }
+    let expectedType =
+      context.overrideType ||
+      'enum value of ' + JSON.stringify(context.name || values)
     throw new InvalidInputError({
       name: undefined,
       typePrefix: context.typePrefix,
-      expectedType: 'enum value ' + JSON.stringify(context.name || values),
+      expectedType,
       reason: 'got ' + toType(input),
       reasonSuffix: context.reasonSuffix,
     })

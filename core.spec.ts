@@ -322,11 +322,11 @@ describe('enum values parser', () => {
   it('should reject wrong value with custom name', () => {
     expect(() =>
       values(['guest', 'customer', 'shop']).parse(null, { name: 'role' }),
-    ).to.throws('Invalid enum value "role", got null')
+    ).to.throws('Invalid enum value of "role", got null')
   })
   it('should reject wrong value without custom name', () => {
     expect(() => values(['guest', 'customer', 'shop']).parse(null)).to.throws(
-      'Invalid enum value ["guest","customer","shop"], got null',
+      'Invalid enum value of ["guest","customer","shop"], got null',
     )
   })
   it('should pass matched value', () => {
