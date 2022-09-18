@@ -103,8 +103,12 @@ describe('float parser', () => {
   it('should indicate floating point number in error message', () => {
     expect(() => float().parse(null)).to.throw('Invalid float, got null')
   })
-  it('should allow negative integer', () => {
-    expect(number().parse(-42)).to.equals(-42)
+  it('should allow negative value', () => {
+    expect(float().parse(-4.2)).to.equals(-4.2)
+  })
+  it('should trim excess digits', () => {
+    expect(float({ toFixed: 2 }).parse(3.1415)).to.equals(3.14)
+    expect(float({ toPrecision: 3 }).parse(3.1415)).to.equals(3.14)
   })
 })
 

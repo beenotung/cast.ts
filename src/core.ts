@@ -281,13 +281,24 @@ export function number(options: NumberOptions = {}) {
   return { parse, options }
 }
 
-export function float(options: NumberOptions = {}) {
+export type FloatOptions = NumberOptions & {
+  toFixed?: number
+  toPrecision?: number
+}
+export function float(options: FloatOptions = {}) {
   let parser = number(options)
   function parse(input: unknown, context: ParserContext = {}): number {
-    return parser.parse(input, {
+    let value: number = parser.parse(input, {
       ...context,
       overrideType: context.overrideType || 'float',
     })
+    if (typeof options.toFixed === 'number') {
+      value = +value.toFixed(options.toFixed)
+    }
+    if (typeof options.toPrecision === 'number') {
+      value = +value.toPrecision(options.toPrecision)
+    }
+    return value
   }
   return { parse, options }
 }
