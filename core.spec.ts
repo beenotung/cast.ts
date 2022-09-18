@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import {
+  array,
   boolean,
   date,
   email,
@@ -345,5 +346,44 @@ describe('nullable parser', () => {
     expect(() => nullable(string()).parse(undefined)).to.throws(
       'Invalid nullable string, got undefined',
     )
+  })
+})
+
+describe('array parser', () => {
+  it('should reject null', () =>
+    expect(() => array(string()).parse(null)).to.throws(
+      'Invalid array, got null',
+    ))
+  it('should reject undefined', () =>
+    expect(() => array(string()).parse(undefined)).to.throws(
+      'Invalid array, got undefined',
+    ))
+  it('should reject string', () =>
+    expect(() => array(string()).parse('')).to.throws(
+      'Invalid array, got empty string',
+    ))
+  it('should pass empty array', () => {
+    expect(array(string()).parse([])).to.deep.equals([])
+  })
+  it('should pass non-empty array', () => {
+    expect(array(string()).parse(['alice', 'bob'])).to.deep.equals([
+      'alice',
+      'bob',
+    ])
+  })
+  it('should reject wrong-typed array', () => {
+    expect(() => array(number()).parse(['alice', 'bob'])).to.throws(
+      'Invalid array of number, got string in array',
+    )
+  })
+  it('should reject too-short array', () => {
+    expect(() => array(string(), { minLength: 3 }).parse([])).to.throws(
+      'Invalid array, minLength should be 3',
+    )
+  })
+  it('should reject too-long array', () => {
+    expect(() =>
+      array(string(), { maxLength: 2 }).parse(['alice', 'bob', 'charlie']),
+    ).to.throws('Invalid array, maxLength should be 2')
   })
 })
