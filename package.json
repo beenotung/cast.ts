@@ -2,7 +2,8 @@
   "name": "cast.ts",
   "version": "0.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "core.js",
+  "types": "core.d.ts",
   "scripts": {
     "mocha": "ts-mocha core.spec.ts",
     "type-check": "tsc --noEmit",
