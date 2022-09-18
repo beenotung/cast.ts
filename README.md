@@ -67,3 +67,52 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - array
   - nullable
   - optional (for object fields)
+
+### General Type
+
+**Utility type**:
+
+```typescript
+// to extract inferred type of parsed payload
+type ParseResult<T extends Parser<R>, R = unknown> = ReturnType<T['parse']>
+```
+
+**Reference types**:
+
+```typescript
+type Parser<T> = {
+  parse(input: unknown, context?: ParserContext): T
+}
+
+// used when building new data parser on top of existing parser
+type ParserContext = {
+  // e.g. array parser specify "array of <type>"
+  typePrefix?: string
+  // e.g. array parser specify "<reason> in array"
+  reasonSuffix?: string
+  // e.g. url parser specify "url" when calling string parser
+  overrideType?: string
+  // e.g. object parser specify entry key when calling entry value parser
+  name?: string
+}
+```
+
+**For custom parsers**:
+
+If you want to implement custom parser you may reuse the `InvalidInputError` error class. The argument options is listed below:
+
+```typescript
+class InvalidInputError extends Error {
+  constructor(options: InvalidInputErrorOptions) {
+    let message = '...'
+    super(message)
+  }
+}
+type InvalidInputErrorOptions = {
+  name: string | undefined
+  typePrefix: string | undefined
+  reasonSuffix: string | undefined
+  expectedType: string
+  reason: string
+}
+```

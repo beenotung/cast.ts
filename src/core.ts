@@ -6,10 +6,15 @@ export type Parser<T> = {
   parse(input: unknown, context: ParserContext): T
 }
 
+// used when building new data parser on top of existing parser
 export type ParserContext = {
+  // e.g. array parser specify "array of <type>"
   typePrefix?: string
+  // e.g. array parser specify "<reason> in array"
   reasonSuffix?: string
+  // e.g. url parser specify "url" when calling string parser
   overrideType?: string
+  // e.g. object parser specify entry key when calling entry value parser
   name?: string
 }
 
