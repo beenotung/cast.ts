@@ -1,3 +1,7 @@
 node_modules/
 pnpm-lock.yaml
 .dccache
+*.js
+*.d.ts
+*.tsbuildinfo
+*.tgz
