@@ -52,7 +52,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
 
 - primary parsers
   - [string](#string)
-  - number
+  - [number](#number)
   - int
   - float (alias of `number()`)
   - [id](#id) (alias of `int({ min: 1 })`)
@@ -139,6 +139,27 @@ type StringOptions = {
   minLength?: number
   maxLength?: number
   match?: RegExp
+}
+```
+
+#### Number
+
+**Example**:
+
+```typescript
+// score is a non-NaN number
+let score = number().parse(req.body.score)
+
+// height is a non-negative number
+let height = number({ min: 0 }).parse(req.body.height)
+```
+
+**Options of number parser**:
+
+```typescript
+type NumberOptions = {
+  min?: number
+  max?: number
 }
 ```
 
