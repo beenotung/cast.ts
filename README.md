@@ -124,6 +124,9 @@ type InvalidInputErrorOptions = {
 **Example**:
 
 ```typescript
+// keyword is a string potentially being empty
+let keyword = string().parse(req.query.keyword)
+
 // username is an non-empty string
 let username = string({ minLength: 3 }).parse(req.body.username)
 ```
