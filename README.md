@@ -117,11 +117,9 @@ type InvalidInputErrorOptions = {
 }
 ```
 
-### Primary Parsers
+## String
 
-#### String
-
-**Example**:
+**Usage Example**:
 
 ```typescript
 // keyword is a string potentially being empty
@@ -142,7 +140,7 @@ type StringOptions = {
 }
 ```
 
-#### Number
+## Number
 
 **Example**:
 
@@ -163,9 +161,9 @@ type NumberOptions = {
 }
 ```
 
-#### Int
+## Int
 
-**Example**:
+**Usage Example**:
 
 ```typescript
 // score is an integer between 1 to 5
@@ -174,9 +172,9 @@ let rating = int({ min: 1, max: 5 }).parse(req.body.rating)
 
 **Options of int parser**: Same as NumberOptions
 
-#### Id
+## Id
 
-**Example**:
+**Usage Example**:
 
 ```typescript
 // cat_id is a non-zero integer
