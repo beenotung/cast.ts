@@ -53,7 +53,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
 - primary parsers
   - [string](#string)
   - [number](#number)
-  - int
+  - [int](#int)
   - float (alias of `number()`)
   - [id](#id) (alias of `int({ min: 1 })`)
   - boolean
@@ -162,6 +162,17 @@ type NumberOptions = {
   max?: number
 }
 ```
+
+#### Int
+
+**Example**:
+
+```typescript
+// score is an integer between 1 to 5
+let rating = int({ min: 1, max: 5 }).parse(req.body.rating)
+```
+
+**Options of int parser**: Same as NumberOptions
 
 #### Id
 
