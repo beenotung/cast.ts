@@ -54,7 +54,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [string](#string)
   - [number](#number)
   - [int](#int)
-  - float (alias of `number()`)
+  - [float](#float)
   - [id](#id) (alias of `int({ min: 1 })`)
   - boolean
   - object
@@ -158,6 +158,33 @@ let height = number({ min: 0 }).parse(req.body.height)
 type NumberOptions = {
   min?: number
   max?: number
+}
+```
+
+## Float
+
+**Example**:
+
+```typescript
+// degree is a real number (non-NaN, non-infinite)
+let degree = float().parse(req.body.degree)
+
+// height is a real number with at most 2 digits after the decimal point
+let height = float({ toFixed: 2 }).parse(req.body.height)
+
+// weight is a real number with at most 3 significant digits
+let weight = float({ toPrecision: 2 }).parse(req.body.weight)
+
+// score is a real number between 0 and 100 inclusively
+let score = float({ min: 0, max: 100 })
+```
+
+**Options of number parser**:
+
+```typescript
+type FloatOptions = NumberOptions & {
+  toFixed?: number
+  toPrecision?: number
 }
 ```
 
