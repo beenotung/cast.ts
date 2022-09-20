@@ -56,7 +56,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [int](#int)
   - [float](#float)
   - [id](#id) (alias of `int({ min: 1 })`)
-  - boolean
+  - [boolean](#boolean)
   - object
   - date
   - url
@@ -209,3 +209,24 @@ let cat_id = id().parse(req.query.cat)
 ```
 
 The id parser doesn't take additional options
+
+## Boolean
+
+**Example**:
+
+```typescript
+// is_admin is a boolean value
+let is_admin = boolean().parse(user.is_admin)
+
+// is_cancelled will be false if product.cancel_time is null
+let is_cancelled = boolean().parse(product.cancel_time)
+
+// effectively asserting the user is admin (throw InvalidInputError if user.is_admin is falsy)
+boolean(true).parse(user.is_admin)
+```
+
+**Options of number parser**:
+
+```typescript
+function boolean(expectedValue?: boolean): Parser<boolean>
+```
