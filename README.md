@@ -66,7 +66,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
 - decorator (wrapping primary parsers)
   - [array](#array)
   - [nullable](#nullable)
-  - optional (for object fields)
+  - [optional](#optional) (for object fields)
 
 ## Parser Types and Usage Examples
 
@@ -377,4 +377,30 @@ let tag = nullable(string()).parse(req.body.tag)
 
 ```typescript
 function nullable<T>(parser: Parser<T>): Parser<T | null>
+```
+
+## Optional
+
+**Example**:
+
+```typescript
+/** searchQuery is an object of {
+ *   page?: number
+ *   count?: number
+ *   category?: string
+ *   keyword: string
+ * }
+ */
+let searchQuery = object({
+  page: optional(int({ min: 1 })),
+  count: optional(int({ max: 25 })),
+  category: optional(string()),
+  keyword: string({ minLength: 3 }),
+}).parse(req.query)
+```
+
+**Options of nullable parser**:
+
+```typescript
+function optional<T>(parser: Parser<T>): Parser<T | undefined>
 ```
