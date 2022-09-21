@@ -59,7 +59,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [boolean](#boolean)
   - [object](#object)
   - [date](#date)
-  - url
+  - [url](#url)
   - email
   - literal
   - enum
@@ -272,5 +272,24 @@ let untilDate = date({
 type DateOptions = {
   min?: number | Date | string
   max?: number | Date | string
+}
+```
+
+## Url
+
+**Example**:
+
+```typescript
+// blogUrl is a string of hyperlink
+let blogUrl = url({ protocols: ['https', 'http'] }).parse(req.body.blogUrl)
+```
+
+**Options of url parser**:
+
+```typescript
+type UrlOptions = StringOptions & {
+  domain?: string
+  protocol?: string
+  protocols?: string[]
 }
 ```
