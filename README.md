@@ -64,7 +64,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [literal](#literal)
   - [values/enum](#values--enum)
 - decorator (wrapping primary parsers)
-  - array
+  - [array](#array)
   - nullable
   - optional (for object fields)
 
@@ -339,4 +339,27 @@ let role = values(['admin', 'customer']).parse(req.session?.role)
 
 ```typescript
 function values<T>(values: T[]): Parser<T>
+```
+
+## Array
+
+**Example**:
+
+```typescript
+// categories is an array of string
+let categories = array(string()).parse(req.body.categories)
+
+// req.query is a string or array of string
+// item_ids is an array of string
+let item_ids = array(string(), { maybeSingle: true }).parse(req.query.item_id)
+```
+
+**Options of array parser**:
+
+```typescript
+type ArrayOptions = {
+  minLength?: number
+  maxLength?: number
+  maybeSingle?: boolean // to handle variadic value e.g. req.query.category
+}
 ```
