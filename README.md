@@ -1,8 +1,14 @@
 # cast.ts
 
-An expressive data validation library with explicit data type conversion.
-
-cast.ts makes it easy to validate data from RESTful API.
+<p align="center">
+  <img src="logo.jpg" width="200px" align="center" alt="cat.ts logo" />
+  <h1 align="center">cast.ts</h1>
+  <p align="center">
+    Validation parsers with static type inference
+    <br/>
+    cast.ts makes it easy to validate data from RESTful API
+  </p>
+</p>
 
 [![npm Package Version](https://img.shields.io/npm/v/cast.ts)](https://www.npmjs.com/package/cast.ts)
 
@@ -404,3 +410,7 @@ let searchQuery = object({
 ```typescript
 function optional<T>(parser: Parser<T>): Parser<T | undefined>
 ```
+
+## Acknowledgments
+
+The icon of cast.ts is generated with [diffuse-the-rest](https://huggingface.co/spaces/huggingface/diffuse-the-rest) and post-processed with [GIMP](https://www.gimp.org).
