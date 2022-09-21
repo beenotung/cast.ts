@@ -62,7 +62,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [url](#url)
   - [email](#email)
   - [literal](#literal)
-  - enum
+  - [values/enum](#values--enum)
 - decorator (wrapping primary parsers)
   - array
   - nullable
@@ -324,4 +324,19 @@ let role = literal('guest').parse(req.session?.role)
 
 ```typescript
 function literal<T>(value: T): Parser<T>
+```
+
+## Values / Enum
+
+**Example**:
+
+```typescript
+// role is like an enum value of 'admin' or 'customer'
+let role = values(['admin', 'customer']).parse(req.session?.role)
+```
+
+**Options of values parser**:
+
+```typescript
+function values<T>(values: T[]): Parser<T>
 ```
