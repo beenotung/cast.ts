@@ -61,7 +61,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [date](#date)
   - [url](#url)
   - [email](#email)
-  - literal
+  - [literal](#literal)
   - enum
 - decorator (wrapping primary parsers)
   - array
@@ -309,4 +309,19 @@ let userEmail = email().parse(req.body.email)
 type EmailOptions = StringOptions & {
   domain?: string
 }
+```
+
+## Literal
+
+**Example**:
+
+```typescript
+// effectively asserting the role is 'guest' (throw InvalidInputError if it isn't)
+let role = literal('guest').parse(req.session?.role)
+```
+
+**Options of literal parser**:
+
+```typescript
+function literal<T>(value: T): Parser<T>
 ```
