@@ -23,7 +23,7 @@ You can also install cast.ts with `pnpm`, `yarn`, or `slnpm`
 ## Usage Example
 
 ```typescript
-import { object, string } from 'cast.ts'
+import { optional, object, int, array, id, string } from 'cast.ts'
 
 let searchQuery = object({
   page: optional(int({ min: 1 })),
