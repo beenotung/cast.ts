@@ -41,5 +41,13 @@
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^4.8.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beenotung/cast.ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beenotung/cast.ts/issues"
+  },
+  "homepage": "https://github.com/beenotung/cast.ts#readme"
 }
