@@ -65,7 +65,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [values/enum](#values--enum)
 - decorator (wrapping primary parsers)
   - [array](#array)
-  - nullable
+  - [nullable](#nullable)
   - optional (for object fields)
 
 ## Parser Types and Usage Examples
@@ -362,4 +362,19 @@ type ArrayOptions = {
   maxLength?: number
   maybeSingle?: boolean // to handle variadic value e.g. req.query.category
 }
+```
+
+## Nullable
+
+**Example**:
+
+```typescript
+// tag is a string or null value
+let tag = nullable(string()).parse(req.body.tag)
+```
+
+**Options of nullable parser**:
+
+```typescript
+function nullable<T>(parser: Parser<T>): Parser<T | null>
 ```
