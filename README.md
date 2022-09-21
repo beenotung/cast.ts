@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/beenotung/cast.ts/HEAD/logo.jpg" width="200px" align="center" alt="cat.ts logo" />
+  <img src="logo.jpg" width="200px" align="center" alt="cat.ts logo" />
   <h1 align="center">cast.ts</h1>
   <p align="center">
     Validation parsers with static type inference
