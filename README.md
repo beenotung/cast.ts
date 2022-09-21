@@ -52,6 +52,8 @@ app.get('/product/search', async (req, res) => {
 
 Noted that the parsed `page`, `count` are numbers, and the `cat` is array of numbers, instead of being string and array of strings in the original `req.query` from express router.
 
+If the validation is not successful, the parser will throw an `InvalidInputError`. You can surround the call with try-catch to response specific error message to the client.
+
 For more complete example, see [examples/server.ts](./examples/server.ts)
 
 ## Supported Parsers
