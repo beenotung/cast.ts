@@ -60,7 +60,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [object](#object)
   - [date](#date)
   - [url](#url)
-  - email
+  - [email](#email)
   - literal
   - enum
 - decorator (wrapping primary parsers)
@@ -291,5 +291,22 @@ type UrlOptions = StringOptions & {
   domain?: string
   protocol?: string
   protocols?: string[]
+}
+```
+
+## Email
+
+**Example**:
+
+```typescript
+// userEmail is a string of email address
+let userEmail = email().parse(req.body.email)
+```
+
+**Options of url parser**:
+
+```typescript
+type EmailOptions = StringOptions & {
+  domain?: string
 }
 ```
