@@ -1,7 +1,7 @@
 {
   "name": "cast.ts",
   "version": "0.0.0",
-  "description": "",
+  "description": "Validation parsers with static type inference. cast.ts makes it easy to validate data from RESTful API",
   "main": "dist/core.js",
   "types": "dist/core.d.ts",
   "scripts": {
@@ -12,8 +12,22 @@
     "clean": "rimraf dist",
     "tsc": "tsc -p ."
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "validation",
+    "schema",
+    "type",
+    "inference",
+    "typescript",
+    "zod",
+    "cast",
+    "RESTful",
+    "API"
+  ],
+  "author": {
+    "name": "Beeno Tung",
+    "email": "aabbcc1241@yahoo.com.hk",
+    "url": "https://beeno-tung.surge.sh"
+  },
   "license": "BSD-2-Clause",
   "devDependencies": {
     "@types/chai": "^4.3.3",
