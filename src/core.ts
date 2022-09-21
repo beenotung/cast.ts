@@ -142,6 +142,7 @@ let urlRegex = /^(.+?):\/\/(.+?)(\/|$)/
 export type UrlOptions = StringOptions & {
   domain?: string
   protocol?: string
+  protocols?: string[]
 }
 export function url(options: UrlOptions = {}) {
   let parser = string(options)
@@ -164,6 +165,19 @@ export function url(options: UrlOptions = {}) {
     }
     let protocol = match[1]
     let domain = match[2]
+    if (
+      Array.isArray(options.protocols) &&
+      !options.protocols.includes(protocol)
+    ) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason:
+          'protocol should be any of ' + JSON.stringify(options.protocols),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     if (typeof options.protocol === 'string' && protocol !== options.protocol) {
       throw new InvalidInputError({
         name: context.name,

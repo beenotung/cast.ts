@@ -285,6 +285,17 @@ describe('url parser', () => {
       ),
     ).to.equals('https://example.net/home')
   })
+  it('should check multiple protocols', () => {
+    expect(() =>
+      url({ protocols: ['https', 'http'] }).parse('ftp://example.com'),
+    ).to.throws('Invalid url, protocol should be any of ["https","http"]')
+    expect(
+      url({ protocols: ['https', 'http'] }).parse('https://example.com'),
+    ).to.equals('https://example.com')
+    expect(
+      url({ protocols: ['https', 'http'] }).parse('http://example.com'),
+    ).to.equals('http://example.com')
+  })
 })
 
 describe('email parser', () => {
