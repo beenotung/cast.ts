@@ -57,7 +57,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [float](#float)
   - [id](#id) (alias of `int({ min: 1 })`)
   - [boolean](#boolean)
-  - object
+  - [object](#object)
   - date
   - url
   - email
@@ -229,4 +229,24 @@ boolean(true).parse(user.is_admin)
 
 ```typescript
 function boolean(expectedValue?: boolean): Parser<boolean>
+```
+
+## Object
+
+**Example**:
+
+```typescript
+// newUser is an object of { username: string, email: string }
+let newUser = object({
+  username: string({ minLength: 3, maxLength: 32 }),
+  email: email(),
+}).parse(req.body)
+```
+
+**Options of object parser**:
+
+```typescript
+type ObjectOptions<T extends object> = {
+  [P in keyof T]: Parser<T[P]>
+}
 ```
