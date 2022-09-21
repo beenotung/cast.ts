@@ -413,6 +413,8 @@ function optional<T>(parser: Parser<T>): Parser<T | undefined>
 
 ## Acknowledgments
 
+The API design is inspired by [Zod](https://github.com/colinhacks/zod). The main difference is cast.ts auto convert data between different types with it's valid, e.g. it converts numeric value from string if it's valid, which is useful when parsing data from `req.query`.
+
 The icon of cast.ts is generated with [diffuse-the-rest](https://huggingface.co/spaces/huggingface/diffuse-the-rest) and post-processed with [GIMP](https://www.gimp.org).
 
 ## License
