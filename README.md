@@ -1,5 +1,3 @@
-# cast.ts
-
 <p align="center">
   <img src="logo.jpg" width="200px" align="center" alt="cat.ts logo" />
   <h1 align="center">cast.ts</h1>
