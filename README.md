@@ -58,7 +58,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [id](#id) (alias of `int({ min: 1 })`)
   - [boolean](#boolean)
   - [object](#object)
-  - date
+  - [date](#date)
   - url
   - email
   - literal
@@ -248,5 +248,29 @@ let newUser = object({
 ```typescript
 type ObjectOptions<T extends object> = {
   [P in keyof T]: Parser<T[P]>
+}
+```
+
+## Date
+
+**Example**:
+
+```typescript
+// sinceDate is a Date object indicating a timestamp in the past
+let sinceDate = date({ max: Date.now() }).parse(req.query.sinceDate)
+
+// untilDate is a Date object between sinceDate and current timestamp
+let untilDate = date({
+  max: Date.now(),
+  min: sinceDate,
+}).parse(req.query.untilDate)
+```
+
+**Options of date parser**:
+
+```typescript
+type DateOptions = {
+  min?: number | Date | string
+  max?: number | Date | string
 }
 ```
