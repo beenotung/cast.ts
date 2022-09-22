@@ -3,4 +3,9 @@ src/
 tsconfig*
 *.tgz
 examples/
+!examples/server.ts
+!examples/package.json
+!examples/tsconfig.json
+examples/node_modules
+examples/pnpm-lock.yaml
 .vscode/
