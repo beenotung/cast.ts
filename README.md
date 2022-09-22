@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="logo.jpg" width="200px" align="center" alt="cat.ts logo" />
+  <a href="https://cloudflare-ipfs.com/ipfs/QmQvhfV87eeKiRs3kchR5ytZBXJ4Lvd5nTF2edhxEW1G8V" title="click to see HD logo of cast.ts">
+    <img src="logo.jpg" width="200px" align="center" alt="cat.ts logo" />
+  </a>
   <h1 align="center">cast.ts</h1>
   <p align="center">
     Validation parsers with static type inference
