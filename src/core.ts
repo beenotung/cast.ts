@@ -25,7 +25,7 @@ export type InvalidInputErrorOptions = {
   expectedType: string
   reason: string
 }
-export class InvalidInputError extends Error {
+export class InvalidInputError extends TypeError {
   constructor(options: InvalidInputErrorOptions) {
     let message = `Invalid `
     if (options.typePrefix) {
