@@ -11,6 +11,8 @@
 </p>
 
 [![npm Package Version](https://img.shields.io/npm/v/cast.ts)](https://www.npmjs.com/package/cast.ts)
+[![Minified Package Size](https://img.shields.io/bundlephobia/min/cast.ts)](https://bundlephobia.com/package/cast.ts)
+[![Minified and Gzipped Package Size](https://img.shields.io/bundlephobia/minzip/cast.ts)](https://bundlephobia.com/package/cast.ts)
 
 ## Installation
 
