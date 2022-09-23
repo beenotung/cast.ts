@@ -26,6 +26,9 @@ export type InvalidInputErrorOptions = {
   reason: string
 }
 export class InvalidInputError extends TypeError {
+  status: number
+  statusCode: number
+
   constructor(options: InvalidInputErrorOptions) {
     let message = `Invalid `
     if (options.typePrefix) {
@@ -40,6 +43,8 @@ export class InvalidInputError extends TypeError {
       message += ' ' + options.reasonSuffix
     }
     super(message)
+    this.status = 400
+    this.statusCode = 400
   }
 }
 
