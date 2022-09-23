@@ -4,15 +4,37 @@
   </a>
   <h1 align="center">cast.ts</h1>
   <p align="center">
-    Validation parsers with static type inference
+    Compose validation parsers with static type inference
     <br/>
-    cast.ts makes it easy to validate data from RESTful API
+    cast.ts makes it easy to handle data from RESTful API
   </p>
 </p>
 
 [![npm Package Version](https://img.shields.io/npm/v/cast.ts)](https://www.npmjs.com/package/cast.ts)
 [![Minified Package Size](https://img.shields.io/bundlephobia/min/cast.ts)](https://bundlephobia.com/package/cast.ts)
 [![Minified and Gzipped Package Size](https://img.shields.io/bundlephobia/minzip/cast.ts)](https://bundlephobia.com/package/cast.ts)
+
+Inspired by [Zod](https://github.com/colinhacks/zod) with automatic type conversions.
+
+## Feature Highlights
+
+- Explicit type conversion
+- Right-to-the-point error message
+- Static type inference
+- Works with plain Javascript, Typescript is not mandatory
+- Zero dependencies
+- Tiny: below 2kB minizipped
+- Isomorphic Package: works in Node.js and browsers
+- Composable: builder functions (i.e. `optional()`) return new parser instance
+- Safe: [Parse, don't type-check](https://news.ycombinator.com/item?id=25220139)
+
+## Introduction
+
+cast.ts is an isomorphic package, it runs in both node.js and browsers.
+
+You can use cast.ts to check against request data on the server, and also response data on the client. This double-checking approach add a safe layer between the interface (API) of separately implemented frontend and backend for easier debugging with specific error message and better security and maintainability.
+
+Bonus: cast.ts also supports static type inference in Typescript project.
 
 ## Installation
 
