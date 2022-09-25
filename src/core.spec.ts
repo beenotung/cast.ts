@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import {
   array,
   boolean,
+  checkbox,
   date,
   email,
   float,
@@ -157,6 +158,20 @@ describe('boolean parser', () => {
   })
 })
 
+describe('checkbox parser', () => {
+  it('should parse "on" as true', () => {
+    expect(checkbox().parse('on')).to.be.true
+  })
+  it('should parse undefined as true', () => {
+    expect(checkbox().parse(undefined)).to.be.false
+  })
+  it('should reject other values', () => {
+    expect(() => checkbox().parse('any string')).to.be.throws(
+      'Invalid checkbox, got string',
+    )
+  })
+})
+
 describe('object parser', () => {
   it('should reject null', () => {
     expect(() => object().parse(null)).to.throw('Invalid object, got null')
@@ -242,6 +257,11 @@ describe('object parser', () => {
       username: 'alice',
       is_admin: true,
     })
+  })
+  it('should parse checkbox field as boolean', () => {
+    let form = object({ happy: checkbox() })
+    expect(form.parse({ happy: 'on' })).to.deep.equals({ happy: true })
+    expect(form.parse({})).to.deep.equals({ happy: false })
   })
 })
 

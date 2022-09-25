@@ -89,6 +89,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [float](#float)
   - [id](#id) (alias of `int({ min: 1 })`)
   - [boolean](#boolean)
+  - [checkbox](#checkbox)
   - [object](#object)
   - [date](#date)
   - [url](#url)
@@ -283,6 +284,19 @@ boolean(true).parse(user.is_admin)
 ```typescript
 function boolean(expectedValue?: boolean): Parser<boolean>
 ```
+
+## Checkbox
+
+When this parser is used as a field of object parser, it will treat absent fields as falsy because browsers will omit unchecked fields when submitting form.
+
+**Example**:
+
+```typescript
+// is_admin is a boolean
+let is_admin = checkbox().parse(req.body.is_admin)
+```
+
+The checkbox parser doesn't take additional options
 
 ## Object
 

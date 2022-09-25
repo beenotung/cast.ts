@@ -387,6 +387,10 @@ export function object<T extends object>(
         if (isOptional(valueParser)) {
           continue
         }
+        if (isCheckbox(valueParser)) {
+          object[key] = false as any
+          continue
+        }
         throw new InvalidInputError({
           name,
           typePrefix: context.typePrefix,
@@ -462,6 +466,31 @@ function parseBooleanString(input: unknown): boolean {
     default:
       return !!input
   }
+}
+
+export function checkbox() {
+  function parse(input: unknown, context: ParserContext = {}): boolean {
+    let expectedType = context.overrideType || 'checkbox'
+    switch (input) {
+      case 'on':
+        return true
+      case undefined:
+        return false
+      default:
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'got ' + toType(input),
+          reasonSuffix: context.reasonSuffix,
+        })
+    }
+  }
+  return { parse, checkbox: true }
+}
+
+function isCheckbox(parser: Parser<unknown>): boolean {
+  return (parser as any).checkbox
 }
 
 let parseDate = date().parse
