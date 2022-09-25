@@ -252,6 +252,34 @@ export function email(options: EmailOptions = {}) {
   return { parse, options }
 }
 
+let colorRegex = /^#[0-9a-f]{6}$/i
+/** @description for parsing <input type="color"> in html form submission */
+export function color() {
+  function parse(input: unknown, context: ParserContext = {}): string {
+    let expectedType = context.overrideType || 'color'
+    if (typeof input !== 'string' || !input) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'got ' + toType(input),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    if (!input.match(colorRegex)) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'should be in "#rrggbb" hexadecimal format',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    return input
+  }
+  return { parse }
+}
+
 export type NumberOptions = {
   min?: number
   max?: number

@@ -90,6 +90,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [id](#id) (alias of `int({ min: 1 })`)
   - [boolean](#boolean)
   - [checkbox](#checkbox)
+  - [color](#color)
   - [object](#object)
   - [date](#date)
   - [url](#url)
@@ -299,6 +300,17 @@ let is_admin = checkbox().parse(req.body.is_admin)
 ```
 
 The checkbox parser doesn't take additional options
+
+## Color
+
+**Example**:
+
+```typescript
+// primary_color is a string in "#rrggbb" format
+let primary_color = color().parse(req.body.primary_color)
+```
+
+The color parser doesn't take additional options
 
 ## Object
 

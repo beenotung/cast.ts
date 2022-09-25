@@ -3,6 +3,7 @@ import {
   array,
   boolean,
   checkbox,
+  color,
   date,
   email,
   float,
@@ -168,6 +169,22 @@ describe('checkbox parser', () => {
   it('should reject other values', () => {
     expect(() => checkbox().parse('any string')).to.be.throws(
       'Invalid checkbox, got string',
+    )
+  })
+})
+
+describe('color parser', () => {
+  it('should parse rgb hex code', () => {
+    expect(color().parse('#123456')).to.be.equals('#123456')
+    expect(color().parse('#ffffff')).to.be.equals('#ffffff')
+    expect(color().parse('#FFFFFF')).to.be.equals('#FFFFFF')
+  })
+  it('should reject invalid format', () => {
+    expect(() => color().parse('')).to.be.throws(
+      'Invalid color, got empty string',
+    )
+    expect(() => color().parse('#rrggbb')).to.be.throws(
+      'Invalid color, should be in "#rrggbb" hexadecimal format',
     )
   })
 })
