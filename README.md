@@ -254,7 +254,6 @@ Example truthy value:
 - non-zero numbers
 
 Example falsy value:
-- "off"
 - "false"
 - 0
 - NaN

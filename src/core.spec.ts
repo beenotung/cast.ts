@@ -149,7 +149,6 @@ describe('boolean parser', () => {
   context('semantic boolean string', () => {
     it('should parse boolean string from html form', () => {
       expect(boolean().parse('on')).to.be.true
-      expect(boolean().parse('off')).to.be.false
     })
     it('should parse literal boolean string', () => {
       expect(boolean().parse('true')).to.be.true

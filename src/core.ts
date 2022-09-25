@@ -457,7 +457,6 @@ function parseBooleanString(input: unknown): boolean {
     input = input.trim()
   }
   switch (input) {
-    case 'off':
     case 'false':
       return false
     default:
