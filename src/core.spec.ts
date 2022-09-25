@@ -46,6 +46,13 @@ describe('string parser', () => {
   it('should allow non-empty string', () => {
     expect(string().parse('42')).to.equals('42')
   })
+  it('should auto trim whitespace', () => {
+    expect(string().parse(' alice ')).to.equals('alice')
+    expect(string({ trim: false }).parse(' alice ')).to.equals(' alice ')
+    expect(() => string({ nonEmpty: true }).parse(' ')).to.throw(
+      'Invalid non-empty string, got empty string',
+    )
+  })
 })
 
 describe('number parser', () => {

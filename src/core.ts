@@ -70,10 +70,14 @@ export type StringOptions = {
   minLength?: number
   maxLength?: number
   match?: RegExp
+  trim?: boolean // default true
 }
 export function string(options: StringOptions = {}) {
   function parse(input: unknown, context: ParserContext = {}): string {
     let expectedType = context.overrideType || 'string'
+    if (options.trim !== false && typeof input === 'string') {
+      input = input.trim()
+    }
     if (options.nonEmpty) {
       if (!expectedType.startsWith('non-empty ')) {
         expectedType = 'non-empty ' + expectedType

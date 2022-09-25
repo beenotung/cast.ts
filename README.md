@@ -169,6 +169,7 @@ type StringOptions = {
   minLength?: number
   maxLength?: number
   match?: RegExp
+  trim?: boolean // default true
 }
 ```
 
