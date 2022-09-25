@@ -44,11 +44,15 @@ export class InvalidInputError extends Error {
 }
 
 function toType(input: unknown): string {
-  if (input === null) {
-    return 'null'
-  }
-  if (input === '') {
-    return 'empty string'
+  switch (input) {
+    case null:
+      return 'null'
+    case '':
+      return 'empty string'
+    case true:
+      return 'boolean (true)'
+    case false:
+      return 'boolean (false)'
   }
   if (Number.isNaN(input)) {
     return 'NaN'
@@ -418,7 +422,11 @@ export function boolean(expectedValue?: boolean) {
     expectedValue = !!expectedValue
   }
   function parse(input: unknown, context: ParserContext = {}): boolean {
-    let expectedType = context.overrideType || 'boolean'
+    let expectedType =
+      context.overrideType ||
+      (typeof expectedValue === 'boolean'
+        ? `boolean (expect: ${expectedValue})`
+        : 'boolean')
     let value = !!input
     if (typeof expectedValue === 'boolean') {
       if (value !== expectedValue) {
