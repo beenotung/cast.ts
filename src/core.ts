@@ -427,7 +427,7 @@ export function boolean(expectedValue?: boolean) {
       (typeof expectedValue === 'boolean'
         ? `boolean (expect: ${expectedValue})`
         : 'boolean')
-    let value = !!input
+    let value = parseBooleanString(input)
     if (typeof expectedValue === 'boolean') {
       if (value !== expectedValue) {
         throw new InvalidInputError({
@@ -442,6 +442,15 @@ export function boolean(expectedValue?: boolean) {
     return value
   }
   return { parse, expectedValue }
+}
+function parseBooleanString(input: unknown): boolean {
+  switch (input) {
+    case 'off':
+    case 'false':
+      return false
+    default:
+      return !!input
+  }
 }
 
 let parseDate = date().parse
