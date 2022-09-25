@@ -125,6 +125,14 @@ describe('boolean parser', () => {
     expect(boolean().parse(null)).to.equals(false)
     expect(boolean().parse(undefined)).to.equals(false)
   })
+  it('should reject if not matching specified value', () => {
+    expect(() => boolean(true).parse(false)).to.throws(
+      'Invalid boolean (expect: true), got boolean (false)',
+    )
+    expect(() => boolean(false).parse(true)).to.throws(
+      'Invalid boolean (expect: false), got boolean (true)',
+    )
+  })
 })
 
 describe('object parser', () => {
