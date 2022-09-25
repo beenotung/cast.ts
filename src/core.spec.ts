@@ -116,7 +116,7 @@ describe('boolean parser', () => {
   it('should allow truthy value', () => {
     expect(boolean().parse(true)).to.equals(true)
     expect(boolean().parse(1)).to.equals(true)
-    expect(boolean().parse(' ')).to.equals(true)
+    expect(boolean().parse('non-empty string')).to.equals(true)
   })
   it('should allow falsy value', () => {
     expect(boolean().parse(false)).to.equals(false)
@@ -124,6 +124,12 @@ describe('boolean parser', () => {
     expect(boolean().parse('')).to.equals(false)
     expect(boolean().parse(null)).to.equals(false)
     expect(boolean().parse(undefined)).to.equals(false)
+  })
+  it('should treat whitespace-only string as false', () => {
+    expect(boolean().parse(' ')).to.equals(false)
+    expect(boolean().parse('\r')).to.equals(false)
+    expect(boolean().parse('\n')).to.equals(false)
+    expect(boolean().parse('\t')).to.equals(false)
   })
   it('should reject if not matching specified value', () => {
     expect(() => boolean(true).parse(false)).to.throws(

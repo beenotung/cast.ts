@@ -449,6 +449,9 @@ export function boolean(expectedValue?: boolean) {
   return { parse, expectedValue }
 }
 function parseBooleanString(input: unknown): boolean {
+  if (typeof input === 'string') {
+    input = input.trim()
+  }
   switch (input) {
     case 'off':
     case 'false':
