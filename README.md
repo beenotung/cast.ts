@@ -249,12 +249,14 @@ The id parser doesn't take additional options
 It parse all truthy values as true, and falsy value as false with some exceptions to better support html form.
 
 Example truthy value:
+
 - "on"
 - "true"
 - non-empty string (after trim)
 - non-zero numbers
 
 Example falsy value:
+
 - "false"
 - 0
 - NaN
