@@ -496,6 +496,7 @@ function parseBooleanString(input: unknown): boolean {
   }
 }
 
+/** @description for parsing <input type="checkbox"> in html form submission */
 export function checkbox() {
   function parse(input: unknown, context: ParserContext = {}): boolean {
     let expectedType = context.overrideType || 'checkbox'
