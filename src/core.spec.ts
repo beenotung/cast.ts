@@ -114,16 +114,16 @@ describe('float parser', () => {
 
 describe('boolean parser', () => {
   it('should allow truthy value', () => {
-    expect(boolean(true).parse(true)).to.equals(true)
-    expect(boolean(true).parse(1)).to.equals(true)
-    expect(boolean(true).parse(' ')).to.equals(true)
+    expect(boolean().parse(true)).to.equals(true)
+    expect(boolean().parse(1)).to.equals(true)
+    expect(boolean().parse(' ')).to.equals(true)
   })
   it('should allow falsy value', () => {
-    expect(boolean(false).parse(false)).to.equals(false)
-    expect(boolean(false).parse(0)).to.equals(false)
-    expect(boolean(false).parse('')).to.equals(false)
-    expect(boolean(false).parse(null)).to.equals(false)
-    expect(boolean(false).parse(undefined)).to.equals(false)
+    expect(boolean().parse(false)).to.equals(false)
+    expect(boolean().parse(0)).to.equals(false)
+    expect(boolean().parse('')).to.equals(false)
+    expect(boolean().parse(null)).to.equals(false)
+    expect(boolean().parse(undefined)).to.equals(false)
   })
 })
 
