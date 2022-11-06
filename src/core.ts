@@ -504,6 +504,7 @@ export function checkbox() {
       case 'on':
         return true
       case undefined:
+      case '':
         return false
       default:
         throw new InvalidInputError({
