@@ -263,6 +263,19 @@ describe('object parser', () => {
       username: 'alice',
     })
   })
+  it('should allow optional field to be null', () => {
+    expect(
+      object({
+        username: string(),
+        is_admin: optional(boolean()),
+      }).parse({
+        username: 'alice',
+        is_admin: null,
+      }),
+    ).to.deep.equals({
+      username: 'alice',
+    })
+  })
   it('should allow providing optional field', () => {
     expect(
       object({
