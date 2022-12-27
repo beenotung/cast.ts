@@ -1,4 +1,13 @@
-import { ParseResult, object, string, int, optional, array, id } from 'cast.ts'
+import {
+  ParseResult,
+  object,
+  string,
+  int,
+  optional,
+  array,
+  id,
+  values,
+} from 'cast.ts'
 import express from 'express'
 import { print } from 'listening-on'
 
@@ -13,6 +22,14 @@ let searchQuery = object({
   count: optional(int({ max: 25 })),
   cat: optional(array(id(), { maybeSingle: true })),
   keyword: string({ minLength: 3 }),
+  color: optional(
+    values([
+      'red' as const,
+      'yellow' as const,
+      'green' as const,
+      'blue' as const,
+    ]),
+  ),
 })
 type SearchQuery = ParseResult<typeof searchQuery>
 // The inferred type is {
@@ -20,6 +37,7 @@ type SearchQuery = ParseResult<typeof searchQuery>
 //   count: number | undefined
 //   cat: number[] | undefined
 //   keyword: string
+//   color: "red" | "yellow" | "green" | "blue" | undefined
 // }
 
 // Example: http://localhost:8100/product/search?page=2&count=20&keyword=food&cat=12&cat=18

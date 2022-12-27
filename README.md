@@ -412,8 +412,13 @@ function literal<T>(value: T): Parser<T>
 **Example**:
 
 ```typescript
-// role is like an enum value of 'admin' or 'customer'
-let role = values(['admin', 'customer']).parse(req.session?.role)
+// color is like an enum value of 'red' | 'yellow' | 'green' | 'blue'
+let color = values([
+  'red' as const,
+  'yellow' as const,
+  'green' as const,
+  'blue' as const,
+]).parse(req.query.color)
 ```
 
 **Options of values parser**:
