@@ -619,12 +619,22 @@ export function values<T>(values: T[]) {
     }
     let expectedType =
       context.overrideType ||
-      'enum value of ' + JSON.stringify(context.name || values)
+      (context.name
+        ? 'enum value of ' + JSON.stringify(context.name)
+        : 'enum value') +
+        ', expect ' +
+        JSON.stringify(values)
     throw new InvalidInputError({
       name: undefined,
       typePrefix: context.typePrefix,
       expectedType,
-      reason: 'got ' + toType(input),
+      reason:
+        'got ' +
+        (typeof input == 'number'
+          ? input
+          : typeof input == 'string' && input.length > 0
+          ? JSON.stringify(input)
+          : toType(input)),
       reasonSuffix: context.reasonSuffix,
     })
   }
