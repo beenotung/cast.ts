@@ -27,6 +27,7 @@ Inspired by [Zod](https://github.com/colinhacks/zod) with automatic type convers
 - Isomorphic Package: works in Node.js and browsers
 - Composable: builder functions (i.e. `optional()`) return new parser instance
 - Safe: [Parse, don't type-check](https://news.ycombinator.com/item?id=25220139)
+- Extensible for meta-programming with type reflection and sample values
 
 ## Introduction
 
@@ -116,6 +117,9 @@ type ParseResult<T extends Parser<R>, R = unknown> = ReturnType<T['parse']>
 ```typescript
 type Parser<T> = {
   parse(input: unknown, context?: ParserContext): T
+  type: string // typescript signature of parsed value
+  sampleValue: T
+  randomSample: () => T
 }
 
 // used when building new data parser on top of existing parser

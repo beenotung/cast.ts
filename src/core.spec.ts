@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import { genTsType } from 'gen-ts-type'
 import {
   array,
   boolean,
@@ -14,6 +15,7 @@ import {
   number,
   object,
   optional,
+  Parser,
   string,
   url,
   values,
@@ -55,6 +57,11 @@ describe('string parser', () => {
       'Invalid non-empty string, got empty string',
     )
   })
+  testReflection({
+    parser: string(),
+    type: 'string',
+    sampleValue: 'text',
+  })
 })
 
 describe('number parser', () => {
@@ -86,6 +93,11 @@ describe('number parser', () => {
   it('should allow negative numbers', () => {
     expect(number().parse(-42)).to.equals(-42)
   })
+  testReflection({
+    parser: number(),
+    type: 'number',
+    sampleValue: 3.14,
+  })
 })
 
 describe('int parser', () => {
@@ -104,7 +116,12 @@ describe('int parser', () => {
     expect(() => int().parse(null)).to.throw('Invalid int, got null')
   })
   it('should allow negative integer', () => {
-    expect(number().parse(-42)).to.equals(-42)
+    expect(int().parse(-42)).to.equals(-42)
+  })
+  testReflection({
+    parser: int(),
+    type: 'number',
+    sampleValue: 42,
   })
 })
 
@@ -118,6 +135,11 @@ describe('float parser', () => {
   it('should trim excess digits', () => {
     expect(float({ toFixed: 2 }).parse(3.1415)).to.equals(3.14)
     expect(float({ toPrecision: 3 }).parse(3.1415)).to.equals(3.14)
+  })
+  testReflection({
+    parser: float(),
+    type: 'number',
+    sampleValue: 3.14,
   })
 })
 
@@ -159,6 +181,12 @@ describe('boolean parser', () => {
       expect(boolean().parse('false')).to.be.false
     })
   })
+  testReflection({
+    parser: boolean(),
+    type: 'boolean',
+    sampleValue: true,
+    randomSamples: [true, false],
+  })
 })
 
 describe('checkbox parser', () => {
@@ -172,6 +200,12 @@ describe('checkbox parser', () => {
     expect(() => checkbox().parse('any string')).to.be.throws(
       'Invalid checkbox, got string',
     )
+  })
+  testReflection({
+    parser: checkbox(),
+    type: 'boolean',
+    sampleValue: true,
+    randomSamples: [true, false],
   })
 })
 
@@ -188,6 +222,11 @@ describe('color parser', () => {
     expect(() => color().parse('#rrggbb')).to.be.throws(
       'Invalid color, should be in "#rrggbb" hexadecimal format',
     )
+  })
+  testReflection({
+    parser: color(),
+    type: 'string',
+    sampleValue: '#c0ffee',
   })
 })
 
@@ -295,6 +334,17 @@ describe('object parser', () => {
     expect(form.parse({ happy: 'on' })).to.deep.equals({ happy: true })
     expect(form.parse({})).to.deep.equals({ happy: false })
   })
+  testReflection({
+    parser: object({ username: string(), email: optional(email()) }),
+    type: `{
+  username: string
+  email?: string
+}`,
+    sampleValue: {
+      username: string().sampleValue,
+      email: email().sampleValue,
+    } as any,
+  })
 })
 
 describe('date parser', () => {
@@ -339,6 +389,11 @@ describe('date parser', () => {
       ),
     ).to.deep.equals(new Date('2022-09-17'))
   })
+  testReflection({
+    parser: date(),
+    type: 'Date',
+    sampleValue: new Date('2022-09-17'),
+  })
 })
 
 describe('url parser', () => {
@@ -378,6 +433,15 @@ describe('url parser', () => {
       url({ protocols: ['https', 'http'] }).parse('http://example.com'),
     ).to.equals('http://example.com')
   })
+  testReflection({
+    parser: url(),
+    type: 'string',
+    sampleValue: 'https://www.example.net',
+    randomSamples: [
+      'https://www.example.net/users/1',
+      'https://www.example.net/users/2',
+    ],
+  })
 })
 
 describe('email parser', () => {
@@ -402,6 +466,12 @@ describe('email parser', () => {
   it('should pass valid email', () => {
     expect(email().parse('user@example.net')).to.equals('user@example.net')
   })
+  testReflection({
+    parser: email(),
+    type: 'string',
+    sampleValue: 'user@example.net',
+    randomSamples: ['user-1@example.net', 'user-2@example.net'],
+  })
 })
 
 describe('literal parser', () => {
@@ -412,6 +482,12 @@ describe('literal parser', () => {
   })
   it('should pass matched value', () => {
     expect(literal('guest').parse('guest')).to.equals('guest')
+  })
+  testReflection({
+    parser: literal('guest'),
+    type: '"guest"',
+    sampleValue: 'guest',
+    randomSamples: ['guest'],
   })
 })
 
@@ -442,6 +518,11 @@ describe('enum values parser', () => {
       'guest',
     )
   })
+  testReflection({
+    parser: values(['user', 'admin']),
+    type: '"user" | "admin"',
+    sampleValue: 'user',
+  })
 })
 
 describe('nullable parser', () => {
@@ -455,6 +536,11 @@ describe('nullable parser', () => {
     expect(() => nullable(string()).parse(undefined)).to.throws(
       'Invalid nullable string, got undefined',
     )
+  })
+  testReflection({
+    parser: nullable(string()),
+    type: 'null | (string)',
+    sampleValue: null,
   })
 })
 
@@ -509,6 +595,11 @@ describe('array parser', () => {
       array(string(), { maxLength: 2 }).parse(['alice', 'bob', 'charlie']),
     ).to.throws('Invalid array, maxLength should be 2')
   })
+  testReflection({
+    parser: array(float()),
+    type: 'Array<number>',
+    sampleValue: [float().sampleValue],
+  })
 })
 
 describe('id parser', () => {
@@ -526,4 +617,56 @@ describe('id parser', () => {
   it('should pass null value if wrapped', () => {
     expect(nullable(id()).parse(null)).to.equals(null)
   })
+  testReflection({
+    parser: id(),
+    type: 'number',
+  })
 })
+
+function testReflection<T>(options: {
+  parser: Parser<T>
+  type: string
+  sampleValue?: T
+  randomSamples?: T[]
+}) {
+  const { parser, type } = options
+  it('should have type', () => {
+    expect(parser.type).to.equals(type)
+  })
+  it('should have sampleValue', () => {
+    expect(parser).to.haveOwnProperty('sampleValue')
+    if ('sampleValue' in options) {
+      expect(parser.sampleValue).to.deep.equals(options.sampleValue)
+    } else {
+      expect(typeof parser.sampleValue).to.equals(type)
+    }
+  })
+  it('should have randomSamples', () => {
+    expect(parser).to.haveOwnProperty('randomSample')
+    if (!options.randomSamples) {
+      // should not throw error
+      for (let sampleRemains = 100; sampleRemains > 0; sampleRemains--) {
+        let sample = parser.randomSample!()
+        expect(sample).not.to.be.undefined
+      }
+      return
+    }
+    for (let sample of options.randomSamples) {
+      let trialRemains = 10
+      for (; ; trialRemains--) {
+        try {
+          let value = parser.randomSample!()
+          if (genTsType(value) === genTsType(sample)) {
+            break
+          }
+          expect(value).to.deep.equals(sample)
+          break
+        } catch (error) {
+          if (trialRemains < 0) {
+            throw error
+          }
+        }
+      }
+    }
+  })
+}

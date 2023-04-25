@@ -3,7 +3,10 @@ export type ParseResult<T extends Parser<R>, R = unknown> = ReturnType<
 >
 
 export type Parser<T> = {
-  parse(input: unknown, context: ParserContext): T
+  parse(input: unknown, context?: ParserContext): T
+  type: string
+  sampleValue: T
+  randomSample: () => T
 }
 
 // used when building new data parser on top of existing parser
@@ -148,7 +151,15 @@ export function string(options: StringOptions = {}) {
     }
     return input
   }
-  return { parse, options }
+  return {
+    parse,
+    options,
+    type: 'string',
+    sampleValue: 'text',
+    randomSample() {
+      return Math.random().toString(36).slice(2)
+    },
+  }
 }
 
 let urlRegex = /^(.+?):\/\/(.+?)(\/|$)/
@@ -211,7 +222,15 @@ export function url(options: UrlOptions = {}) {
     }
     return url
   }
-  return { parse, options }
+  return {
+    parse,
+    options,
+    type: 'string',
+    sampleValue: 'https://www.example.net',
+    randomSample() {
+      return 'https://www.example.net/users/' + randomId()
+    },
+  }
 }
 
 let emailRegex = /^.+?@(.+)$/
@@ -249,7 +268,15 @@ export function email(options: EmailOptions = {}) {
     }
     return email
   }
-  return { parse, options }
+  return {
+    parse,
+    options,
+    type: 'string',
+    sampleValue: 'user@example.net',
+    randomSample() {
+      return 'user-' + randomId() + '@example.net'
+    },
+  }
 }
 
 let colorRegex = /^#[0-9a-f]{6}$/i
@@ -277,7 +304,22 @@ export function color() {
     }
     return input
   }
-  return { parse }
+  return {
+    parse,
+    type: 'string',
+    sampleValue: '#c0ffee',
+    randomSample() {
+      return (
+        '#' +
+        randomHex() +
+        randomHex() +
+        randomHex() +
+        randomHex() +
+        randomHex() +
+        randomHex()
+      )
+    },
+  }
 }
 
 export type NumberOptions = {
@@ -333,7 +375,15 @@ export function number(options: NumberOptions = {}) {
     }
     return input
   }
-  return { parse, options }
+  return {
+    parse,
+    options,
+    type: 'number',
+    sampleValue: 3.14,
+    randomSample() {
+      return randomDelta(10)
+    },
+  }
 }
 
 export type FloatOptions = NumberOptions & {
@@ -355,7 +405,15 @@ export function float(options: FloatOptions = {}) {
     }
     return value
   }
-  return { parse, options }
+  return {
+    parse,
+    options,
+    type: 'number',
+    sampleValue: 3.14,
+    randomSample() {
+      return Math.random()
+    },
+  }
 }
 
 export function int(options: NumberOptions = {}) {
@@ -377,7 +435,15 @@ export function int(options: NumberOptions = {}) {
       reasonSuffix: context.reasonSuffix,
     })
   }
-  return { parse, options }
+  return {
+    parse,
+    options,
+    type: 'number',
+    sampleValue: 42,
+    randomSample() {
+      return randomId() - 50
+    },
+  }
 }
 
 export type ObjectOptions<T extends object> = {
@@ -438,7 +504,34 @@ export function object<T extends object>(
     }
     return object
   }
-  return { parse, options }
+  let sampleValue: Record<string, any> = {}
+  let type = '{'
+  for (let key in options) {
+    let valueParser = options[key]
+    let value = valueParser.sampleValue
+    sampleValue[key] = value
+    let valueType = valueParser.type || typeof value
+    if (isOptional(valueParser)) {
+      type += `\n  ${key}?: ${valueType}`
+    } else {
+      type += `\n  ${key}: ${valueType}`
+    }
+  }
+  type += '\n}'
+  return {
+    parse,
+    options,
+    type,
+    sampleValue,
+    randomSample() {
+      let sampleValue: Record<string, any> = {}
+      for (let key in options) {
+        let parser = options[key]
+        sampleValue[key] = parser.randomSample?.()
+      }
+      return sampleValue
+    },
+  }
 }
 
 export function optional<T>(parser: Parser<T>): Parser<T | undefined> {
@@ -458,7 +551,21 @@ export function nullable<T>(parser: Parser<T>) {
       typePrefix: typePrefix ? 'nullable ' + typePrefix : 'nullable',
     })
   }
-  return { parse, parser }
+  let type = getParserType(parser)
+  if (isSimpleType(type)) {
+    type = `null | ${type}`
+  } else {
+    type = `null | (${type})`
+  }
+  return {
+    parse,
+    parser,
+    type: `null | (${getParserType(parser)})`,
+    sampleValue: null,
+    randomSample() {
+      return Math.random() < 0.5 ? null : parser.randomSample?.()
+    },
+  }
 }
 
 export function boolean(expectedValue?: boolean) {
@@ -485,7 +592,15 @@ export function boolean(expectedValue?: boolean) {
     }
     return value
   }
-  return { parse, expectedValue }
+  return {
+    parse,
+    expectedValue,
+    type: 'boolean',
+    sampleValue: true,
+    randomSample() {
+      return Math.random() < 0.5
+    },
+  }
 }
 function parseBooleanString(input: unknown): boolean {
   if (typeof input === 'string') {
@@ -519,7 +634,15 @@ export function checkbox() {
         })
     }
   }
-  return { parse, checkbox: true }
+  return {
+    parse,
+    checkbox: true,
+    type: 'boolean',
+    sampleValue: true,
+    randomSample() {
+      return Math.random() < 0.5
+    },
+  }
 }
 
 function isCheckbox(parser: Parser<unknown>): boolean {
@@ -593,7 +716,19 @@ export function date(options: DateOptions = {}) {
       reasonSuffix: context.reasonSuffix,
     })
   }
-  return { parse, options }
+  return {
+    parse,
+    options,
+    type: 'Date',
+    sampleValue: new Date('2022-09-17'),
+    randomSample() {
+      let date = new Date()
+      date.setFullYear(date.getFullYear() + randomDelta(10))
+      date.setMonth(date.getMonth() + randomDelta(6))
+      date.setDate(date.getDate() + randomDelta(15))
+      return date
+    },
+  }
 }
 
 export function literal<T>(value: T) {
@@ -609,7 +744,15 @@ export function literal<T>(value: T) {
       reasonSuffix: context.reasonSuffix,
     })
   }
-  return { parse, value }
+  return {
+    parse,
+    value,
+    type: JSON.stringify(value),
+    sampleValue: value,
+    randomSample() {
+      return value
+    },
+  }
 }
 
 export function values<T>(values: T[]) {
@@ -638,7 +781,15 @@ export function values<T>(values: T[]) {
       reasonSuffix: context.reasonSuffix,
     })
   }
-  return { parse, values }
+  return {
+    parse,
+    values,
+    type: values.map(value => JSON.stringify(value)).join(' | '),
+    sampleValue: values[0],
+    randomSample() {
+      return values[Math.floor(Math.random() * values.length)]
+    },
+  }
 }
 
 export type ArrayOptions = {
@@ -697,7 +848,16 @@ export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
     }
     return values
   }
-  return { parse, parser, options }
+  return {
+    parse,
+    parser,
+    options,
+    type: `Array<${getParserType(parser)}>`,
+    sampleValue: [parser.sampleValue],
+    randomSample() {
+      return [parser.randomSample?.()]
+    },
+  }
 }
 
 /**
@@ -708,7 +868,23 @@ export function id() {
   function parse(input: unknown, context: ParserContext = {}): number {
     return parseInt(input, { ...context, overrideType: 'id' })
   }
-  return { parse }
+  return {
+    parse,
+    type: 'number',
+    sampleValue: 1,
+    randomSample: randomId,
+  }
+}
+
+function randomId() {
+  return Math.floor(Math.random() * 100 + 1)
+}
+
+function randomDelta(range: number) {
+  return (Math.random() * 2 - 1) * range
+}
+function randomHex() {
+  return Math.floor(Math.random() * 16).toString(16)
 }
 
 function concat(
@@ -719,4 +895,15 @@ function concat(
     return a + ' ' + b
   }
   return a || b
+}
+
+export function getParserType(parser: Partial<Parser<any>>): string {
+  if (parser.type) return parser.type
+  if ('sampleValue' in parser) return typeof parser.sampleValue
+  if (parser.randomSample) return typeof parser.randomSample()
+  return 'unknown'
+}
+
+function isSimpleType(type: string): boolean {
+  return !!type.match(/^\w+$/)
 }
