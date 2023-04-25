@@ -137,6 +137,8 @@ If you want to implement custom parser you may reuse the `InvalidInputError` err
 
 ```typescript
 class InvalidInputError extends Error {
+  status: number // alias of statusCode
+  statusCode: number // default 400
   constructor(options: InvalidInputErrorOptions) {
     let message = '...'
     super(message)
