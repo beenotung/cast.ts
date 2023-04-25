@@ -14,7 +14,7 @@
 [![Minified Package Size](https://img.shields.io/bundlephobia/min/cast.ts)](https://bundlephobia.com/package/cast.ts)
 [![Minified and Gzipped Package Size](https://img.shields.io/bundlephobia/minzip/cast.ts)](https://bundlephobia.com/package/cast.ts)
 
-Inspired by [Zod](https://github.com/colinhacks/zod) with automatic type conversions.
+Inspired by [Zod](https://github.com/colinhacks/zod) and [tRPC](https://github.com/trpc/trpc) with automatic type conversion, type reflection and sample values.
 
 ## Feature Highlights
 
