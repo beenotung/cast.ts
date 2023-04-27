@@ -21,6 +21,15 @@ import {
   values,
 } from './core'
 
+let mockSampleValue: any = 'mock-sample'
+let mockRandomSample = function (): any {
+  // mock function
+}
+let mockCustomSampleProps = {
+  sampleValue: mockSampleValue,
+  randomSample: mockRandomSample,
+}
+
 describe('string parser', () => {
   it('should auto convert number into string', () => {
     expect(string().parse(42)).to.equals('42')
@@ -61,6 +70,7 @@ describe('string parser', () => {
     parser: string(),
     type: 'string',
     sampleValue: 'text',
+    customSample: () => string(mockCustomSampleProps),
   })
 })
 
@@ -97,6 +107,7 @@ describe('number parser', () => {
     parser: number(),
     type: 'number',
     sampleValue: 3.14,
+    customSample: () => number(mockCustomSampleProps),
   })
 })
 
@@ -122,6 +133,7 @@ describe('int parser', () => {
     parser: int(),
     type: 'number',
     sampleValue: 42,
+    customSample: () => int(mockCustomSampleProps),
   })
 })
 
@@ -140,6 +152,7 @@ describe('float parser', () => {
     parser: float(),
     type: 'number',
     sampleValue: 3.14,
+    customSample: () => float(mockCustomSampleProps),
   })
 })
 
@@ -186,6 +199,7 @@ describe('boolean parser', () => {
     type: 'boolean',
     sampleValue: true,
     randomSamples: [true, false],
+    customSample: false,
   })
 })
 
@@ -206,6 +220,7 @@ describe('checkbox parser', () => {
     type: 'boolean',
     sampleValue: true,
     randomSamples: [true, false],
+    customSample: () => checkbox(mockCustomSampleProps),
   })
 })
 
@@ -227,6 +242,7 @@ describe('color parser', () => {
     parser: color(),
     type: 'string',
     sampleValue: '#c0ffee',
+    customSample: () => color(mockCustomSampleProps),
   })
 })
 
@@ -344,6 +360,8 @@ describe('object parser', () => {
       username: string().sampleValue,
       email: email().sampleValue,
     } as any,
+    customSample: () =>
+      object({ username: string(), email: email() }, mockCustomSampleProps),
   })
 })
 
@@ -393,6 +411,7 @@ describe('date parser', () => {
     parser: date(),
     type: 'Date',
     sampleValue: new Date('2022-09-17'),
+    customSample: () => date(mockCustomSampleProps),
   })
 })
 
@@ -441,6 +460,7 @@ describe('url parser', () => {
       'https://www.example.net/users/1',
       'https://www.example.net/users/2',
     ],
+    customSample: () => url(mockCustomSampleProps),
   })
 })
 
@@ -471,6 +491,7 @@ describe('email parser', () => {
     type: 'string',
     sampleValue: 'user@example.net',
     randomSamples: ['user-1@example.net', 'user-2@example.net'],
+    customSample: () => email(mockCustomSampleProps),
   })
 })
 
@@ -488,6 +509,7 @@ describe('literal parser', () => {
     type: '"guest"',
     sampleValue: 'guest',
     randomSamples: ['guest'],
+    customSample: false,
   })
 })
 
@@ -522,6 +544,7 @@ describe('enum values parser', () => {
     parser: values(['user', 'admin']),
     type: '"user" | "admin"',
     sampleValue: 'user',
+    customSample: () => values(['user', 'admin'], mockCustomSampleProps),
   })
 })
 
@@ -541,6 +564,7 @@ describe('nullable parser', () => {
     parser: nullable(string()),
     type: 'null | (string)',
     sampleValue: null,
+    customSample: () => nullable(string(), mockCustomSampleProps),
   })
 })
 
@@ -599,6 +623,7 @@ describe('array parser', () => {
     parser: array(float()),
     type: 'Array<number>',
     sampleValue: [float().sampleValue],
+    customSample: () => array(float(), mockCustomSampleProps),
   })
 })
 
@@ -620,6 +645,7 @@ describe('id parser', () => {
   testReflection({
     parser: id(),
     type: 'number',
+    customSample: () => id(mockCustomSampleProps),
   })
 })
 
@@ -628,6 +654,7 @@ function testReflection<T>(options: {
   type: string
   sampleValue?: T
   randomSamples?: T[]
+  customSample: (() => Parser<T>) | false
 }) {
   const { parser, type } = options
   it('should have type', () => {
@@ -669,4 +696,12 @@ function testReflection<T>(options: {
       }
     }
   })
+  const { customSample } = options
+  if (customSample) {
+    it('should be able to customize sample', () => {
+      let parser = customSample()
+      expect(parser.sampleValue).to.equals(mockSampleValue)
+      expect(parser.randomSample).to.equals(mockRandomSample)
+    })
+  }
 }

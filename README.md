@@ -157,6 +157,26 @@ type InvalidInputErrorOptions = {
 }
 ```
 
+In addition, you may use the `populateSampleProps` helper function when constructing custom parser. The type signature is listed below:
+
+```typescript
+function populateSampleProps<T>(options: {
+  defaultProps: SampleProps<T>
+  customProps?: CustomSampleOptions<T>
+}): SampleProps<T>
+
+type SampleProps<T> = {
+  sampleValue: T
+  randomSample: () => T
+}
+
+type CustomSampleOptions<T> = {
+  sampleValue?: T
+  sampleValues?: T[]
+  randomSample?: () => T
+}
+```
+
 ## String
 
 **Usage Example**:

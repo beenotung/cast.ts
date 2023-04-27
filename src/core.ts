@@ -51,6 +51,41 @@ export class InvalidInputError extends TypeError {
   }
 }
 
+export type CustomSampleOptions<T> = {
+  sampleValue?: T
+  sampleValues?: T[]
+  randomSample?: () => T
+}
+
+export type SampleProps<T> = {
+  sampleValue: T
+  randomSample: () => T
+}
+
+export function populateSampleProps<T>(options: {
+  defaultProps: SampleProps<T>
+  customProps: CustomSampleOptions<T> | undefined
+}): SampleProps<T> {
+  const { defaultProps, customProps } = options
+  if (!customProps) return defaultProps
+  const { sampleValue, sampleValues, randomSample } = customProps
+  return {
+    sampleValue:
+      sampleValue !== undefined
+        ? sampleValue
+        : sampleValues && sampleValues.length > 0
+        ? sampleValues[0]
+        : randomSample
+        ? randomSample()
+        : defaultProps.sampleValue,
+    randomSample: randomSample
+      ? randomSample
+      : sampleValues
+      ? () => randomElement(sampleValues)
+      : defaultProps.randomSample,
+  }
+}
+
 function toType(input: unknown): string {
   switch (input) {
     case null:
@@ -75,7 +110,9 @@ export type StringOptions = {
   match?: RegExp
   trim?: boolean // default true
 }
-export function string(options: StringOptions = {}) {
+export function string(
+  options: StringOptions & CustomSampleOptions<string> = {},
+) {
   function parse(input: unknown, context: ParserContext = {}): string {
     let expectedType = context.overrideType || 'string'
     if (options.trim !== false && typeof input === 'string') {
@@ -155,10 +192,13 @@ export function string(options: StringOptions = {}) {
     parse,
     options,
     type: 'string',
-    sampleValue: 'text',
-    randomSample() {
-      return Math.random().toString(36).slice(2)
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: 'text',
+        randomSample: () => Math.random().toString(36).slice(2),
+      },
+      customProps: options,
+    }),
   }
 }
 
@@ -168,7 +208,7 @@ export type UrlOptions = StringOptions & {
   protocol?: string
   protocols?: string[]
 }
-export function url(options: UrlOptions = {}) {
+export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''
@@ -226,18 +266,24 @@ export function url(options: UrlOptions = {}) {
     parse,
     options,
     type: 'string',
-    sampleValue: 'https://www.example.net',
-    randomSample() {
-      return 'https://www.example.net/users/' + randomId()
-    },
+    ...populateSampleProps({
+      defaultProps: defaultUrlSampleProps,
+      customProps: options,
+    }),
   }
+}
+const defaultUrlSampleProps: SampleProps<string> = {
+  sampleValue: 'https://www.example.net',
+  randomSample: () => 'https://www.example.net/users/' + randomId(),
 }
 
 let emailRegex = /^.+?@(.+)$/
 export type EmailOptions = StringOptions & {
   domain?: string
 }
-export function email(options: EmailOptions = {}) {
+export function email(
+  options: EmailOptions & CustomSampleOptions<string> = {},
+) {
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''
@@ -272,16 +318,20 @@ export function email(options: EmailOptions = {}) {
     parse,
     options,
     type: 'string',
-    sampleValue: 'user@example.net',
-    randomSample() {
-      return 'user-' + randomId() + '@example.net'
-    },
+    ...populateSampleProps({
+      defaultProps: defaultEmailSampleProps,
+      customProps: options,
+    }),
   }
+}
+const defaultEmailSampleProps: SampleProps<string> = {
+  sampleValue: 'user@example.net',
+  randomSample: () => 'user-' + randomId() + '@example.net',
 }
 
 let colorRegex = /^#[0-9a-f]{6}$/i
 /** @description for parsing <input type="color"> in html form submission */
-export function color() {
+export function color(options?: CustomSampleOptions<string>) {
   function parse(input: unknown, context: ParserContext = {}): string {
     let expectedType = context.overrideType || 'color'
     if (typeof input !== 'string' || !input) {
@@ -307,26 +357,31 @@ export function color() {
   return {
     parse,
     type: 'string',
-    sampleValue: '#c0ffee',
-    randomSample() {
-      return (
-        '#' +
-        randomHex() +
-        randomHex() +
-        randomHex() +
-        randomHex() +
-        randomHex() +
-        randomHex()
-      )
-    },
+    ...populateSampleProps({
+      defaultProps: defaultColorSampleProps,
+      customProps: options,
+    }),
   }
+}
+const defaultColorSampleProps: SampleProps<string> = {
+  sampleValue: '#c0ffee',
+  randomSample: () =>
+    '#' +
+    randomHex() +
+    randomHex() +
+    randomHex() +
+    randomHex() +
+    randomHex() +
+    randomHex(),
 }
 
 export type NumberOptions = {
   min?: number
   max?: number
 }
-export function number(options: NumberOptions = {}) {
+export function number(
+  options: NumberOptions & CustomSampleOptions<number> = {},
+) {
   function parse(input: unknown, context: ParserContext = {}): number {
     let expectedType = context.overrideType || 'number'
     let type = toType(input)
@@ -379,10 +434,13 @@ export function number(options: NumberOptions = {}) {
     parse,
     options,
     type: 'number',
-    sampleValue: 3.14,
-    randomSample() {
-      return randomDelta(10)
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: 3.14,
+        randomSample: () => randomDelta(10),
+      },
+      customProps: options,
+    }),
   }
 }
 
@@ -390,7 +448,9 @@ export type FloatOptions = NumberOptions & {
   toFixed?: number
   toPrecision?: number
 }
-export function float(options: FloatOptions = {}) {
+export function float(
+  options: FloatOptions & CustomSampleOptions<number> = {},
+) {
   let parser = number(options)
   function parse(input: unknown, context: ParserContext = {}): number {
     let value: number = parser.parse(input, {
@@ -409,14 +469,18 @@ export function float(options: FloatOptions = {}) {
     parse,
     options,
     type: 'number',
-    sampleValue: 3.14,
-    randomSample() {
-      return Math.random()
-    },
+    ...populateSampleProps({
+      defaultProps: defaultFloatSampleProps,
+      customProps: options,
+    }),
   }
 }
+const defaultFloatSampleProps: SampleProps<number> = {
+  sampleValue: 3.14,
+  randomSample: () => Math.random(),
+}
 
-export function int(options: NumberOptions = {}) {
+export function int(options: NumberOptions & CustomSampleOptions<number> = {}) {
   let parseNumber = number(options).parse
   function parse(input: unknown, context: ParserContext = {}): number {
     let expectedType = context.overrideType || 'int'
@@ -439,19 +503,25 @@ export function int(options: NumberOptions = {}) {
     parse,
     options,
     type: 'number',
-    sampleValue: 42,
-    randomSample() {
-      return randomId() - 50
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: 42,
+        randomSample: () => randomId() - 50,
+      },
+      customProps: options,
+    }),
   }
 }
 
-export type ObjectOptions<T extends object> = {
+export type ObjectFieldParsers<T extends object> = {
   [P in keyof T]: Parser<T[P]>
 }
+/** @deprecated renamed to ObjectFieldParsers */
+export type ObjectOptions<T extends object> = ObjectFieldParsers<T>
 
 export function object<T extends object>(
-  options: ObjectOptions<T> = {} as any,
+  fieldParsers: ObjectFieldParsers<T> = {} as any,
+  options?: CustomSampleOptions<T>,
 ) {
   function parse(input: unknown, context: ParserContext = {}): T {
     let name = context.name
@@ -475,8 +545,8 @@ export function object<T extends object>(
       })
     }
     let object: T = {} as any
-    for (let key in options) {
-      let valueParser = options[key]
+    for (let key in fieldParsers) {
+      let valueParser = fieldParsers[key]
       if (!(key in input)) {
         if (isOptional(valueParser)) {
           continue
@@ -504,12 +574,46 @@ export function object<T extends object>(
     }
     return object
   }
-  let sampleValue: Record<string, any> = {}
+
+  function getDefaultSampleValue(): T {
+    let sampleValue: Record<string, any>
+    if (options && options.sampleValue) {
+      sampleValue = options.sampleValue
+    } else if (
+      options &&
+      options.sampleValues &&
+      options.sampleValues.length > 0
+    ) {
+      sampleValue = options.sampleValues[0]
+    } else if (options && options.randomSample) {
+      sampleValue = options.randomSample()
+    } else {
+      sampleValue = {}
+      for (let key in fieldParsers) {
+        let parser = fieldParsers[key]
+        sampleValue[key] =
+          parser.sampleValue !== undefined
+            ? parser.sampleValue
+            : parser.randomSample?.()
+      }
+    }
+    return sampleValue as T
+  }
+
+  function defaultRandomSample(): T {
+    let sampleValue: Record<string, any> = {}
+    for (let key in fieldParsers) {
+      let parser = fieldParsers[key]
+      sampleValue[key] = parser.randomSample?.()
+    }
+    return sampleValue as T
+  }
+
+  // determine type
   let type = '{'
-  for (let key in options) {
-    let valueParser = options[key]
+  for (let key in fieldParsers) {
+    let valueParser = fieldParsers[key]
     let value = valueParser.sampleValue
-    sampleValue[key] = value
     let valueType = valueParser.type || typeof value
     if (isOptional(valueParser)) {
       type += `\n  ${key}?: ${valueType}`
@@ -518,19 +622,20 @@ export function object<T extends object>(
     }
   }
   type += '\n}'
+
   return {
     parse,
-    options,
+    options: fieldParsers,
     type,
-    sampleValue,
-    randomSample() {
-      let sampleValue: Record<string, any> = {}
-      for (let key in options) {
-        let parser = options[key]
-        sampleValue[key] = parser.randomSample?.()
-      }
-      return sampleValue
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        get sampleValue() {
+          return getDefaultSampleValue()
+        },
+        randomSample: defaultRandomSample,
+      },
+      customProps: options,
+    }),
   }
 }
 
@@ -542,7 +647,10 @@ function isOptional(parser: Parser<unknown>): boolean {
   return (parser as any).optional
 }
 
-export function nullable<T>(parser: Parser<T>) {
+export function nullable<T>(
+  parser: Parser<T>,
+  options?: CustomSampleOptions<T | null>,
+) {
   function parse(input: unknown, context: ParserContext = {}): T | null {
     if (input === null) return null
     let typePrefix = context.typePrefix
@@ -561,10 +669,14 @@ export function nullable<T>(parser: Parser<T>) {
     parse,
     parser,
     type: `null | (${getParserType(parser)})`,
-    sampleValue: null,
-    randomSample() {
-      return Math.random() < 0.5 ? null : parser.randomSample?.()
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: null,
+        randomSample: () =>
+          Math.random() < 0.5 ? null : parser.randomSample?.(),
+      },
+      customProps: options,
+    }),
   }
 }
 
@@ -597,9 +709,7 @@ export function boolean(expectedValue?: boolean) {
     expectedValue,
     type: 'boolean',
     sampleValue: true,
-    randomSample() {
-      return Math.random() < 0.5
-    },
+    randomSample: () => Math.random() < 0.5,
   }
 }
 function parseBooleanString(input: unknown): boolean {
@@ -615,7 +725,7 @@ function parseBooleanString(input: unknown): boolean {
 }
 
 /** @description for parsing <input type="checkbox"> in html form submission */
-export function checkbox() {
+export function checkbox(options?: CustomSampleOptions<boolean>) {
   function parse(input: unknown, context: ParserContext = {}): boolean {
     let expectedType = context.overrideType || 'checkbox'
     switch (input) {
@@ -638,10 +748,13 @@ export function checkbox() {
     parse,
     checkbox: true,
     type: 'boolean',
-    sampleValue: true,
-    randomSample() {
-      return Math.random() < 0.5
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: true,
+        randomSample: () => Math.random() < 0.5,
+      },
+      customProps: options,
+    }),
   }
 }
 
@@ -649,12 +762,11 @@ function isCheckbox(parser: Parser<unknown>): boolean {
   return (parser as any).checkbox
 }
 
-let parseDate = date().parse
 export type DateOptions = {
   min?: number | Date | string
   max?: number | Date | string
 }
-export function date(options: DateOptions = {}) {
+export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
   function parse(input: unknown, context: ParserContext = {}): Date {
     let expectedType = context.overrideType || 'date'
     function checkDate(value: Date): Date {
@@ -720,16 +832,23 @@ export function date(options: DateOptions = {}) {
     parse,
     options,
     type: 'Date',
-    sampleValue: new Date('2022-09-17'),
-    randomSample() {
-      let date = new Date()
-      date.setFullYear(date.getFullYear() + randomDelta(10))
-      date.setMonth(date.getMonth() + randomDelta(6))
-      date.setDate(date.getDate() + randomDelta(15))
-      return date
-    },
+    ...populateSampleProps({
+      defaultProps: defaultDateSampleProps,
+      customProps: options,
+    }),
   }
 }
+const defaultDateSampleProps: SampleProps<Date> = {
+  sampleValue: new Date('2022-09-17'),
+  randomSample: () => {
+    let date = new Date()
+    date.setFullYear(date.getFullYear() + randomDelta(10))
+    date.setMonth(date.getMonth() + randomDelta(6))
+    date.setDate(date.getDate() + randomDelta(15))
+    return date
+  },
+}
+let parseDate = date().parse
 
 export function literal<T>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
@@ -749,13 +868,11 @@ export function literal<T>(value: T) {
     value,
     type: JSON.stringify(value),
     sampleValue: value,
-    randomSample() {
-      return value
-    },
+    randomSample: () => value,
   }
 }
 
-export function values<T>(values: T[]) {
+export function values<T>(values: T[], options?: CustomSampleOptions<T>) {
   function parse(input: unknown, context: ParserContext = {}): T {
     for (let value of values) {
       if (input === value) return value
@@ -785,10 +902,13 @@ export function values<T>(values: T[]) {
     parse,
     values,
     type: values.map(value => JSON.stringify(value)).join(' | '),
-    sampleValue: values[0],
-    randomSample() {
-      return values[Math.floor(Math.random() * values.length)]
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: values[0],
+        randomSample: () => randomElement(values),
+      },
+      customProps: options,
+    }),
   }
 }
 
@@ -797,7 +917,10 @@ export type ArrayOptions = {
   maxLength?: number
   maybeSingle?: boolean // to handle variadic value e.g. req.query.category
 }
-export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
+export function array<T>(
+  parser: Parser<T>,
+  options: ArrayOptions & CustomSampleOptions<T[]> = {},
+) {
   function parse(input: unknown, context: ParserContext = {}): T[] {
     let { typePrefix, reasonSuffix } = context
     let expectedType = context.overrideType || 'array'
@@ -853,17 +976,22 @@ export function array<T>(parser: Parser<T>, options: ArrayOptions = {}) {
     parser,
     options,
     type: `Array<${getParserType(parser)}>`,
-    sampleValue: [parser.sampleValue],
-    randomSample() {
-      return [parser.randomSample?.()]
-    },
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: [parser.sampleValue],
+        randomSample() {
+          return [parser.randomSample?.()]
+        },
+      },
+      customProps: options,
+    }),
   }
 }
 
 /**
  * @description for parsing database auto-increment primary key
  */
-export function id() {
+export function id(options?: CustomSampleOptions<number>) {
   let parseInt = int({ min: 1 }).parse
   function parse(input: unknown, context: ParserContext = {}): number {
     return parseInt(input, { ...context, overrideType: 'id' })
@@ -871,9 +999,15 @@ export function id() {
   return {
     parse,
     type: 'number',
-    sampleValue: 1,
-    randomSample: randomId,
+    ...populateSampleProps({
+      defaultProps: defaultIdSampleProps,
+      customProps: options,
+    }),
   }
+}
+const defaultIdSampleProps: SampleProps<number> = {
+  sampleValue: 1,
+  randomSample: randomId,
 }
 
 function randomId() {
@@ -883,8 +1017,17 @@ function randomId() {
 function randomDelta(range: number) {
   return (Math.random() * 2 - 1) * range
 }
+
 function randomHex() {
   return Math.floor(Math.random() * 16).toString(16)
+}
+
+function randomElement<T>(elements: T[]): T {
+  if (randomElement.length === 0) {
+    throw new Error('Cannot pick random element from empty array')
+  }
+  let index = Math.floor(Math.random() * elements.length)
+  return elements[index]
 }
 
 function concat(
