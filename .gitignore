@@ -4,3 +4,4 @@ pnpm-lock.yaml
 dist/
 *.tsbuildinfo
 *.tgz
+.nyc_output
