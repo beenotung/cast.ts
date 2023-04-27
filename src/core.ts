@@ -609,24 +609,31 @@ export function object<T extends object>(
     return sampleValue as T
   }
 
-  // determine type
-  let type = '{'
-  for (let key in fieldParsers) {
-    let valueParser = fieldParsers[key]
-    let value = valueParser.sampleValue
-    let valueType = valueParser.type || typeof value
-    if (isOptional(valueParser)) {
-      type += `\n  ${key}?: ${valueType}`
-    } else {
-      type += `\n  ${key}: ${valueType}`
+  let type: string
+  function getType(): string {
+    if (type) return type
+    type = '{'
+    for (let key in fieldParsers) {
+      let valueParser = fieldParsers[key]
+      let value = valueParser.sampleValue
+      let valueType = valueParser.type || typeof value
+      valueType = valueType.replace(/\n/g, '\n  ')
+      if (isOptional(valueParser)) {
+        type += `\n  ${key}?: ${valueType}`
+      } else {
+        type += `\n  ${key}: ${valueType}`
+      }
     }
+    type += '\n}'
+    return type
   }
-  type += '\n}'
 
   return {
     parse,
     options: fieldParsers,
-    type,
+    get type() {
+      return getType()
+    },
     ...populateSampleProps({
       defaultProps: {
         get sampleValue() {

@@ -350,6 +350,33 @@ describe('object parser', () => {
     expect(form.parse({ happy: 'on' })).to.deep.equals({ happy: true })
     expect(form.parse({})).to.deep.equals({ happy: false })
   })
+  it('should indent object fields type recursively', () => {
+    expect(
+      object({
+        friend: object({ username: string(), since: date() }),
+        bookmarks: array(
+          object({
+            id: id(),
+            remark: string(),
+            tags: array(object({ id: id(), name: string() })),
+          }),
+        ),
+      }).type,
+    ).to.equals(`{
+  friend: {
+    username: string
+    since: Date
+  }
+  bookmarks: Array<{
+    id: number
+    remark: string
+    tags: Array<{
+      id: number
+      name: string
+    }>
+  }>
+}`)
+  })
   testReflection({
     parser: object({ username: string(), email: optional(email()) }),
     type: `{
