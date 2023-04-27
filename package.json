@@ -1,6 +1,6 @@
 {
   "name": "cast.ts",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Validation parsers with static type inference. cast.ts makes it easy to validate data from RESTful API",
   "main": "dist/core.js",
   "types": "dist/core.d.ts",
