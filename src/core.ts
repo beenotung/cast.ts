@@ -1066,7 +1066,11 @@ export function inferFromSampleValue<T>(value: T): Parser<T> {
   if (typeof value == 'string')
     return string({ sampleValue: value }) as Parser<string> as Parser<T>
   if (typeof value == 'number')
-    return number({ sampleValue: value }) as Parser<number> as Parser<T>
+    return Number.isInteger(value)
+      ? (int({ sampleValue: value }) as Parser<number> as Parser<T>)
+      : Math.round(value) != value
+      ? (float({ sampleValue: value }) as Parser<number> as Parser<T>)
+      : (number({ sampleValue: value }) as Parser<number> as Parser<T>)
   if (typeof value == 'boolean')
     return boolean() as Parser<boolean> as Parser<T>
   if (value instanceof Date)
