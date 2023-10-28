@@ -879,6 +879,7 @@ export function literal<T>(value: T) {
   }
 }
 
+/** @alias enums */
 export function values<T>(values: T[], options?: CustomSampleOptions<T>) {
   function parse(input: unknown, context: ParserContext = {}): T {
     for (let value of values) {
@@ -918,6 +919,9 @@ export function values<T>(values: T[], options?: CustomSampleOptions<T>) {
     }),
   }
 }
+
+/** @alias values */
+export let enums = values
 
 export type ArrayOptions = {
   minLength?: number

@@ -97,7 +97,7 @@ For more complete example, see [examples/server.ts](./examples/server.ts)
   - [url](#url)
   - [email](#email)
   - [literal](#literal)
-  - [values/enum](#values--enum)
+  - [values/enums](#values--enums)
 - decorator (wrapping primary parsers)
   - [array](#array)
   - [nullable](#nullable)
@@ -433,7 +433,7 @@ let role = literal('guest').parse(req.session?.role)
 function literal<T>(value: T): Parser<T>
 ```
 
-## Values / Enum
+## Values / Enums
 
 **Example**:
 
@@ -452,6 +452,8 @@ let color = values([
 ```typescript
 function values<T>(values: T[]): Parser<T>
 ```
+
+The function `values()` is also aliased as `enums()`
 
 ## Array
 
