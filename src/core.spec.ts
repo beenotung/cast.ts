@@ -549,17 +549,17 @@ describe('literal parser', () => {
   })
 })
 
-describe('enum values parser', () => {
+describe('enums values parser', () => {
   it('should reject wrong value with custom name', () => {
     expect(() =>
       values(['guest', 'customer', 'shop']).parse(null, { name: 'role' }),
     ).to.throws(
-      'Invalid enum value of "role", expect ["guest","customer","shop"], got null',
+      'Invalid enums value of "role", expect ["guest","customer","shop"], got null',
     )
   })
   it('should reject wrong value without custom name', () => {
     expect(() => values(['guest', 'customer', 'shop']).parse(null)).to.throws(
-      'Invalid enum value, expect ["guest","customer","shop"], got null',
+      'Invalid enums value, expect ["guest","customer","shop"], got null',
     )
   })
   it('should show expected values even when nested in object', () => {
@@ -568,7 +568,7 @@ describe('enum values parser', () => {
         query: { type: 'guest' },
       }),
     ).to.throws(
-      'Invalid enum value of "query.type", expect ["admin","user"], got "guest"',
+      'Invalid enums value of "query.type", expect ["admin","user"], got "guest"',
     )
   })
   it('should pass matched value', () => {

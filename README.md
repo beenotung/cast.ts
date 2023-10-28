@@ -438,7 +438,7 @@ function literal<T>(value: T): Parser<T>
 **Example**:
 
 ```typescript
-// color is like an enum value of 'red' | 'yellow' | 'green' | 'blue'
+// color is like an enums value of 'red' | 'yellow' | 'green' | 'blue'
 let color = values([
   'red' as const,
   'yellow' as const,

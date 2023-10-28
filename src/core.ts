@@ -888,8 +888,8 @@ export function values<T>(values: T[], options?: CustomSampleOptions<T>) {
     let expectedType =
       context.overrideType ||
       (context.name
-        ? 'enum value of ' + JSON.stringify(context.name)
-        : 'enum value') +
+        ? 'enums value of ' + JSON.stringify(context.name)
+        : 'enums value') +
         ', expect ' +
         JSON.stringify(values)
     throw new InvalidInputError({
