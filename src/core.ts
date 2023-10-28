@@ -1061,3 +1061,33 @@ export function getParserType(parser: Partial<Parser<any>>): string {
 function isSimpleType(type: string): boolean {
   return !!type.match(/^\w+$/)
 }
+
+export function inferFromSampleValue<T>(value: T): Parser<T> {
+  if (typeof value == 'string')
+    return string({ sampleValue: value }) as Parser<string> as Parser<T>
+  if (typeof value == 'number')
+    return number({ sampleValue: value }) as Parser<number> as Parser<T>
+  if (typeof value == 'boolean')
+    return boolean() as Parser<boolean> as Parser<T>
+  if (value instanceof Date)
+    return date({ sampleValue: value }) as Parser<Date> as Parser<T>
+  if (Array.isArray(value))
+    return array(inferFromSampleValue(value[0])) as Parser<
+      Array<any>
+    > as Parser<T>
+  if (value != null && typeof value == 'object') {
+    let fieldParserEntries: [string, Parser<any>][] = []
+    for (let field in value) {
+      let val = value[field]
+      let parser = inferFromSampleValue(val)
+      fieldParserEntries.push([field, parser])
+    }
+    return object(
+      Object.fromEntries(fieldParserEntries) as ObjectFieldParsers<any>,
+      {
+        sampleValue: value,
+      },
+    ) as Parser<object> as Parser<T>
+  }
+  throw new Error('unsupported sample value: ' + JSON.stringify(value))
+}

@@ -9,6 +9,7 @@ import {
   email,
   float,
   id,
+  inferFromSampleValue,
   int,
   literal,
   nullable,
@@ -378,10 +379,10 @@ describe('object parser', () => {
 }`)
   })
   testReflection({
-    parser: object({ username: string(), email: optional(email()) }),
+    parser: object({ username: string(), email: email() }),
     type: `{
   username: string
-  email?: string
+  email: string
 }`,
     sampleValue: {
       username: string().sampleValue,
@@ -389,6 +390,13 @@ describe('object parser', () => {
     } as any,
     customSample: () =>
       object({ username: string(), email: email() }, mockCustomSampleProps),
+  })
+  it('should indicate optional field in type', () => {
+    let parser = object({ username: string(), email: optional(email()) })
+    expect(parser.type).to.equals(`{
+  username: string
+  email?: string
+}`)
   })
 })
 
@@ -537,6 +545,7 @@ describe('literal parser', () => {
     sampleValue: 'guest',
     randomSamples: ['guest'],
     customSample: false,
+    skipInfer: true,
   })
 })
 
@@ -572,6 +581,7 @@ describe('enum values parser', () => {
     type: '"user" | "admin"',
     sampleValue: 'user',
     customSample: () => values(['user', 'admin'], mockCustomSampleProps),
+    skipInfer: true,
   })
 })
 
@@ -592,6 +602,7 @@ describe('nullable parser', () => {
     type: 'null | (string)',
     sampleValue: null,
     customSample: () => nullable(string(), mockCustomSampleProps),
+    skipInfer: true,
   })
 })
 
@@ -682,6 +693,7 @@ function testReflection<T>(options: {
   sampleValue?: T
   randomSamples?: T[]
   customSample: (() => Parser<T>) | false
+  skipInfer?: boolean
 }) {
   const { parser, type } = options
   it('should have type', () => {
@@ -729,6 +741,14 @@ function testReflection<T>(options: {
       let parser = customSample()
       expect(parser.sampleValue).to.equals(mockSampleValue)
       expect(parser.randomSample).to.equals(mockRandomSample)
+    })
+  }
+  if (options.skipInfer !== true) {
+    const sampleValue =
+      'sampleValue' in options ? options.sampleValue : parser.sampleValue
+    it('should infer from sampleValue', () => {
+      let inferredParser = inferFromSampleValue(sampleValue)
+      expect(inferredParser.type).equals(parser.type)
     })
   }
 }
