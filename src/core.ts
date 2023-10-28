@@ -1083,7 +1083,46 @@ export function inferFromSampleValue<T>(value: T): Parser<T> {
     let fieldParserEntries: [string, Parser<any>][] = []
     for (let field in value) {
       let val = value[field]
-      let parser = inferFromSampleValue(val)
+      let parser: Parser<any>
+      let is_nullable = false
+      let is_optional = false
+      for (;;) {
+        if (Array.isArray(val)) {
+          if (field.endsWith('$enums')) {
+            field = field.slice(0, field.length - '$enums'.length) as any
+            parser = values(val, { sampleValues: val })
+            continue
+          }
+          if (field.endsWith('$enum')) {
+            field = field.slice(0, field.length - '$enum'.length) as any
+            parser = values(val, { sampleValues: val })
+            continue
+          }
+        }
+        if (field.endsWith('$nullable')) {
+          field = field.slice(0, field.length - '$nullable'.length) as any
+          is_nullable = true
+          continue
+        }
+        if (field.endsWith('$null')) {
+          field = field.slice(0, field.length - '$null'.length) as any
+          is_nullable = true
+          continue
+        }
+        if (field.endsWith('$optional')) {
+          field = field.slice(0, field.length - '$optional'.length) as any
+          is_optional = true
+          continue
+        }
+        break
+      }
+      parser ||= inferFromSampleValue(val)
+      if (is_nullable) {
+        parser = nullable(parser)
+      }
+      if (is_optional) {
+        parser = optional(parser)
+      }
       fieldParserEntries.push([field, parser])
     }
     return object(

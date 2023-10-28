@@ -392,11 +392,69 @@ describe('object parser', () => {
       object({ username: string(), email: email() }, mockCustomSampleProps),
   })
   it('should indicate optional field in type', () => {
-    let parser = object({ username: string(), email: optional(email()) })
+    let parser = object({
+      username: string(),
+      email: optional(email()),
+    })
     expect(parser.type).to.equals(`{
   username: string
   email?: string
 }`)
+  })
+  it('should infer enums field', () => {
+    let sampleValue = {
+      username: 'alice',
+      role_1$enums: ['admin', 'staff', 'customer'],
+      role_2$enum: ['admin', 'staff', 'customer'],
+    }
+    let parser = inferFromSampleValue(sampleValue)
+    expect(parser.type).to.equals(`{
+  username: string
+  role_1: "admin" | "staff" | "customer"
+  role_2: "admin" | "staff" | "customer"
+}`)
+  })
+  it('should infer nullable field', () => {
+    let sampleValue = {
+      id: 1,
+      cancel_time_1$nullable: new Date(),
+      cancel_time_2$null: new Date(),
+    }
+    let parser = inferFromSampleValue(sampleValue)
+    expect(parser.type).to.equals(`{
+  id: number
+  cancel_time_1: null | (Date)
+  cancel_time_2: null | (Date)
+}`)
+  })
+  it('should infer optional field', () => {
+    let sampleValue = {
+      id: 1,
+      cancel_time$optional: new Date(),
+    }
+    let parser = inferFromSampleValue(sampleValue)
+    expect(parser.type).to.equals(`{
+  id: number
+  cancel_time?: Date
+}`)
+  })
+  it('should infer optional, nullable and enums field in any order', () => {
+    let variants = [
+      '$optional$nullable$enums',
+      '$null$optional$enum',
+      '$enum$optional$null',
+    ]
+    for (let variant of variants) {
+      let sampleValue = {
+        id: 1,
+        ['status' + variant]: ['active', 'inactive'],
+      }
+      let parser = inferFromSampleValue(sampleValue)
+      expect(parser.type).to.equals(`{
+  id: number
+  status?: null | ("active" | "inactive")
+}`)
+    }
   })
 })
 
