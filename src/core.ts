@@ -1114,6 +1114,11 @@ export function inferFromSampleValue<T>(value: T): Parser<T> {
           is_optional = true
           continue
         }
+        if (field.endsWith('?')) {
+          field = field.slice(0, field.length - 1) as any
+          is_optional = true
+          continue
+        }
         break
       }
       parser ||= inferFromSampleValue(val)

@@ -429,20 +429,24 @@ describe('object parser', () => {
   })
   it('should infer optional field', () => {
     let sampleValue = {
-      id: 1,
-      cancel_time$optional: new Date(),
+      'id': 1,
+      'cancel_time_1$optional': new Date(),
+      'cancel_time_2?': new Date(),
     }
     let parser = inferFromSampleValue(sampleValue)
     expect(parser.type).to.equals(`{
   id: number
-  cancel_time?: Date
+  cancel_time_1?: Date
+  cancel_time_2?: Date
 }`)
+    parser.parse({ id: 1 })
   })
   it('should infer optional, nullable and enums field in any order', () => {
     let variants = [
       '$optional$nullable$enums',
       '$null$optional$enum',
       '$enum$optional$null',
+      '$enum$null?',
     ]
     for (let variant of variants) {
       let sampleValue = {
