@@ -1062,8 +1062,7 @@ function isSimpleType(type: string): boolean {
   return !!type.match(/^\w+$/)
 }
 
-function _checkType<T>(t: T) {}
-
+/*
 type InferFieldName<S> = S extends `${infer N}$enums`
   ? InferFieldName<N>
   : S extends `${infer N}$enum`
@@ -1077,97 +1076,83 @@ type InferFieldName<S> = S extends `${infer N}$enums`
   : S extends `${infer N}?`
   ? InferFieldName<N>
   : S
+*/
 
-_checkType<InferFieldName<'role'>>('role')
-_checkType<InferFieldName<'role$enums'>>('role')
-_checkType<InferFieldName<'role$enum'>>('role')
-_checkType<InferFieldName<'user_id$nullable'>>('user_id')
-_checkType<InferFieldName<'user_id$null'>>('user_id')
-_checkType<InferFieldName<'type$optional'>>('type')
-_checkType<InferFieldName<'type?'>>('type')
-_checkType<InferFieldName<'type$null?'>>('type')
-_checkType<InferFieldName<'role$enums$null?'>>('role')
-_checkType<InferFieldName<'role$null$enums?'>>('role')
+type InferEnumsField<O> = {
+  [P in keyof O as P extends `${string}$enums${string}`
+    ? never
+    : P extends `${string}$enum${string}`
+    ? never
+    : P]: O[P]
+} & {
+  [P in keyof O as P extends `${infer H}$enums${infer T}`
+    ? `${H}${T}`
+    : P extends `${infer H}$enum${infer T}`
+    ? `${H}${T}`
+    : never]: O[P] extends Array<infer V> ? V : O[P]
+}
 
-type ExcludeOptionalFieldName<S> = S extends `${infer H}?${infer T}`
-  ? never
-  : S extends `${infer H}$optional${infer T}`
-  ? never
-  : S
+type InferNullableField<O> = {
+  [P in keyof O as P extends `${string}$nullable${string}`
+    ? never
+    : P extends `${string}$null${string}`
+    ? never
+    : P]: O[P]
+} & {
+  [P in keyof O as P extends `${infer H}$nullable${infer T}`
+    ? `${H}${T}`
+    : P extends `${infer H}$null${infer T}`
+    ? `${H}${T}`
+    : never]: null | O[P]
+}
 
-_checkType<ExcludeOptionalFieldName<'id' | 'status?'>>('id')
-// @ts-expect-error
-_checkType<ExcludeOptionalFieldName<'id' | 'status?'>>('status?')
-// @ts-expect-error
-_checkType<ExcludeOptionalFieldName<'id' | 'status?'>>('status')
+type InferOptionalField<O> = {
+  [P in keyof O as P extends `${string}$optional${string}`
+    ? never
+    : P extends `${string}?${string}`
+    ? never
+    : P]: O[P]
+} & {
+  [P in keyof O as P extends `${infer H}$optional${infer T}`
+    ? `${H}${T}`
+    : P extends `${infer H}?${infer T}`
+    ? `${H}${T}`
+    : never]?: O[P]
+}
 
-type PickOptionalFieldName<S> = S extends `${infer H}?${infer T}`
-  ? S
-  : S extends `${infer H}$optional${infer T}`
-  ? S
-  : never
-
-// @ts-expect-error
-_checkType<PickOptionalFieldName<'id' | 'status?'>>('id')
-_checkType<PickOptionalFieldName<'id' | 'status?'>>('status?')
-_checkType<PickOptionalFieldName<'id' | 'status$optional'>>('status$optional')
+type InferObjectType<T> = InferOptionalField<
+  InferNullableField<InferEnumsField<T>>
+>
 
 type InferType<T> = T extends Array<infer E>
   ? Array<InferType<E>>
-  : T extends Record<infer K extends keyof T, infer V>
-  ? Partial<Record<InferFieldName<K>, V>> &
-      Pick<T, ExcludeOptionalFieldName<keyof T>>
+  : T extends {}
+  ? InferObjectType<T>
   : T
-
-_checkType<InferType<{ id: number; role: 'admin' }>>({ id: 1, role: 'admin' })
-_checkType<InferType<{ id: number; role?: 'admin' }>>({ id: 1 })
-_checkType<InferType<{ id: number; role?: 'admin' }>>({ id: 1, role: 'admin' })
-// @ts-expect-error
-_checkType<InferType<{ id: number; role?: 'admin' }>>({ id: 'admin', role: 1 })
-_checkType<InferType<{ 'id': number; 'role?': 'admin' }>>({
-  id: 1,
-  role: 'admin',
-})
-_checkType<InferType<{ 'id': number; 'role?': 'admin' }>>({ id: 1 })
-// @ts-expect-error
-_checkType<InferType<{ 'id': number; 'role?': 'admin' }>>({ id: 'admin' })
-_checkType<number[]>([1])
-_checkType<{ id: 1 }[]>([{ id: 1 }])
-// @ts-expect-error
-_checkType<InferType<{ 'id': number; 'role?': 'admin' }>>({})
-_checkType<{ posts: { 'id': number; 'status?': 'active' }[] }>({
-  posts: [
-    {
-      id: 1,
-      status: 'active',
-    },
-  ],
-})
-_checkType<{ posts: { 'id': number; 'status?': 'active' }[] }>({
-  posts: [
-    {
-      id: 1,
-    },
-  ],
-})
 
 export function inferFromSampleValue<T>(value: T): Parser<InferType<T>> {
   if (typeof value == 'string')
-    return string({ sampleValue: value }) as Parser<string> as Parser<T>
+    return string({ sampleValue: value }) as Parser<string> as Parser<
+      InferType<T>
+    >
   if (typeof value == 'number')
     return Number.isInteger(value)
-      ? (int({ sampleValue: value }) as Parser<number> as Parser<T>)
+      ? (int({ sampleValue: value }) as Parser<number> as Parser<InferType<T>>)
       : Math.round(value) != value
-      ? (float({ sampleValue: value }) as Parser<number> as Parser<T>)
-      : (number({ sampleValue: value }) as Parser<number> as Parser<T>)
+      ? (float({ sampleValue: value }) as Parser<number> as Parser<
+          InferType<T>
+        >)
+      : (number({ sampleValue: value }) as Parser<number> as Parser<
+          InferType<T>
+        >)
   if (typeof value == 'boolean')
-    return boolean() as Parser<boolean> as Parser<T>
+    return boolean() as Parser<boolean> as Parser<InferType<T>>
   if (value instanceof Date)
-    return date({ sampleValue: value }) as Parser<Date> as Parser<T>
+    return date({ sampleValue: value }) as Parser<Date> as Parser<InferType<T>>
   if (Array.isArray(value))
     return array(inferFromSampleValue(value[0])) as Parser<
       Array<any>
-    > as Parser<T>
+    > as Parser<InferType<T>>
   if (value != null && typeof value == 'object') {
     let fieldParserEntries: [string, Parser<any>][] = []
     for (let field in value) {
@@ -1224,13 +1209,7 @@ export function inferFromSampleValue<T>(value: T): Parser<InferType<T>> {
       {
         sampleValue: value,
       },
-    ) as Parser<object> as Parser<T>
+    ) as Parser<object> as Parser<InferType<T>>
   }
   throw new Error('unsupported sample value: ' + JSON.stringify(value))
 }
-
-let parser_1 = inferFromSampleValue({ id: 1, status: 's' })
-parser_1.parse({}).status // string
-
-let parser_2 = inferFromSampleValue({ id: 1, status$optional: 's' })
-parser_2.parse({}).status // string | number | undefined

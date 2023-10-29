@@ -17,6 +17,7 @@ import {
   object,
   optional,
   Parser,
+  ParseResult,
   string,
   url,
   values,
@@ -459,6 +460,45 @@ describe('object parser', () => {
   status?: null | ("active" | "inactive")
 }`)
     }
+  })
+  it('should infer result type without $ flags', () => {
+    let parser = inferFromSampleValue({
+      'status_1$enums': ['a' as const, 'b' as const],
+      'status_2$enum': ['a' as const, 'b' as const],
+      'status_3$nullable': 's',
+      'status_4$null': 's',
+      'status_5$optional': 's',
+      'status_6?': 's',
+      'status_7$optional$nullable': 's',
+      'status_8$nullable$optional': 's',
+      'status_9$enum$nullable$optional': ['a' as const, 'b' as const],
+      'status_10$nullable$enums?': ['a' as const, 'b' as const],
+      'status_11$nullable$optional$enum': ['a' as const, 'b' as const],
+    })
+    type Result = ParseResult<typeof parser>
+    type Key = keyof Result
+    let result = parser.parse({
+      status_1: 'a',
+      status_2: 'a',
+      status_3: null,
+      status_4: null,
+    })
+    function checkType<T>(t: T) {
+      /* noop */
+    }
+    checkType<{
+      status_1: 'a' | 'b'
+      status_2: 'a' | 'b'
+      status_3: null | string
+      status_4: null | string
+      status_5?: undefined | string
+      status_6?: undefined | string
+      status_7?: undefined | null | string
+      status_8?: undefined | null | string
+      status_9?: undefined | null | 'a' | 'b'
+      status_10?: undefined | null | 'a' | 'b'
+      status_11?: undefined | null | 'a' | 'b'
+    }>(result)
   })
 })
 
