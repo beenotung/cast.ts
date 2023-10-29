@@ -675,7 +675,7 @@ export function nullable<T>(
   return {
     parse,
     parser,
-    type: `null | (${getParserType(parser)})`,
+    type,
     ...populateSampleProps({
       defaultProps: {
         sampleValue: null,

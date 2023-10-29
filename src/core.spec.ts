@@ -423,8 +423,8 @@ describe('object parser', () => {
     let parser = inferFromSampleValue(sampleValue)
     expect(parser.type).to.equals(`{
   id: number
-  cancel_time_1: null | (Date)
-  cancel_time_2: null | (Date)
+  cancel_time_1: null | Date
+  cancel_time_2: null | Date
 }`)
   })
   it('should infer optional field', () => {
@@ -655,9 +655,18 @@ describe('nullable parser', () => {
       'Invalid nullable string, got undefined',
     )
   })
+  it('should use bracket for complex type', () => {
+    expect(nullable(values(['active', 'hidden'])).type).to.equals(
+      'null | ("active" | "hidden")',
+    )
+  })
+  it('should not use bracket for simple types', () => {
+    expect(nullable(string()).type).to.equals('null | string')
+    expect(nullable(number()).type).to.equals('null | number')
+  })
   testReflection({
     parser: nullable(string()),
-    type: 'null | (string)',
+    type: 'null | string',
     sampleValue: null,
     customSample: () => nullable(string(), mockCustomSampleProps),
     skipInfer: true,
