@@ -22,6 +22,7 @@ Inspired by [Zod](https://github.com/colinhacks/zod) and [tRPC](https://github.c
 - Right-to-the-point error message
 - Static type inference
 - Composable: builder functions (i.e. `optional()`) return new parser instance
+- Convenience: support auto-infer parser from from sample value
 - Safe: [Parse, don't type-check](https://news.ycombinator.com/item?id=25220139)
 - Tiny: below 2kB minizipped
 - Zero dependencies
@@ -46,6 +47,10 @@ npm install cast.ts
 You can also install cast.ts with `pnpm`, `yarn`, or `slnpm`
 
 ## Usage Example
+
+You can compose a parser by composing a wide range of parser builders, or auto infer a parser from sample value.
+
+### Composing Parsers
 
 ```typescript
 import { optional, object, int, array, id, string } from 'cast.ts'
@@ -79,7 +84,45 @@ Noted that the parsed `page`, `count` are numbers, and the `cat` is array of num
 
 If the validation is not successful, the parser will throw an `InvalidInputError`. You can surround the call with try-catch to response specific error message to the client.
 
+A full list of built-in parsers are documented in the [Supported Parsers](#supported-parsers) section below.
+
 For more complete example, see [examples/server.ts](./examples/server.ts)
+
+### Infer from Sample Value
+
+You can use `inferFromSampleValue()` to auto-infer the parser based on given sample value.
+
+Usage example:
+
+```typescript
+import { inferFromSampleValue } from 'cast.ts'
+
+let parser = inferFromSampleValue({
+  postList: [
+    {
+      id: 1,
+      title: 'Hello World',
+      type$enums: ['public', 'vip'],
+      hidden$optional: true,
+    },
+  ],
+})
+let input = parser.parse(req.body)
+/* the type of parsed input is inferred as:
+{
+  postList: Array<{
+    id: number
+    title: string
+    type: 'public' | 'vip'
+    hidden?: boolean
+  }>
+}
+*/
+```
+
+Supported field name decorators (suffix): `$enums` (alias: `$enum`), `$nullable` (alias: `$null`), `$optional` (alias: `?`).
+
+The field name decorators can be used in combination in any order.
 
 ## Supported Parsers
 
