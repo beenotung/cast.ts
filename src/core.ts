@@ -1062,22 +1062,6 @@ function isSimpleType(type: string): boolean {
   return !!type.match(/^\w+$/)
 }
 
-/*
-type InferFieldName<S> = S extends `${infer N}$enums`
-  ? InferFieldName<N>
-  : S extends `${infer N}$enum`
-  ? InferFieldName<N>
-  : S extends `${infer N}$nullable`
-  ? InferFieldName<N>
-  : S extends `${infer N}$null`
-  ? InferFieldName<N>
-  : S extends `${infer N}$optional`
-  ? InferFieldName<N>
-  : S extends `${infer N}?`
-  ? InferFieldName<N>
-  : S
-*/
-
 type InferEnumsField<O> = {
   [P in keyof O as P extends `${string}$enums${string}`
     ? never
