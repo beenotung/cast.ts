@@ -21,13 +21,13 @@ Inspired by [Zod](https://github.com/colinhacks/zod) and [tRPC](https://github.c
 - Explicit type conversion
 - Right-to-the-point error message
 - Static type inference
-- Works with plain Javascript, Typescript is not mandatory
-- Zero dependencies
-- Tiny: below 2kB minizipped
-- Isomorphic Package: works in Node.js and browsers
 - Composable: builder functions (i.e. `optional()`) return new parser instance
 - Safe: [Parse, don't type-check](https://news.ycombinator.com/item?id=25220139)
-- Extensible for meta-programming with type reflection and sample values
+- Tiny: below 2kB minizipped
+- Zero dependencies
+- Isomorphic Package: works in Node.js and browsers
+- Works with plain Javascript, Typescript is not mandatory
+- Extensible: support meta-programming with type reflection and sample values
 
 ## Introduction
 
