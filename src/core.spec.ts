@@ -461,7 +461,7 @@ describe('object parser', () => {
 }`)
     }
   })
-  it('should infer result type without $ flags', () => {
+  it('should infer result type without enums/nullable/optional flags', () => {
     let parser = inferFromSampleValue({
       'status_1$enums': ['a' as const, 'b' as const],
       'status_2$enum': ['a' as const, 'b' as const],
@@ -499,6 +499,17 @@ describe('object parser', () => {
       status_10?: undefined | null | 'a' | 'b'
       status_11?: undefined | null | 'a' | 'b'
     }>(result)
+  })
+  it('should recursively infer result type', () => {
+    let parser = inferFromSampleValue({
+      a$nullable: {
+        b$optional: {
+          c$enums: ['a' as const, 'b' as const],
+        },
+      },
+    })
+    let result = parser.parse({ a: { b: { c: 'a' } } })
+    expect(result.a?.b?.c).to.equals('a')
   })
 })
 

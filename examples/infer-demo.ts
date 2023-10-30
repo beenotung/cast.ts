@@ -29,7 +29,10 @@ console.log(parser.type)
 
 type Result = ParseResult<typeof parser>
 type Post = Result['postList'][number]
-// @ts-expect-error
 type PostStatus = Post['status']
 
-// TODO extract object field name without $suffix
+function checkType<T>(t: T) {
+  /* noop */
+}
+
+checkType<'active' | 'hidden'>(null as unknown as PostStatus)

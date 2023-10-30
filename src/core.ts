@@ -1097,13 +1097,13 @@ type InferNullableField<O> = {
     ? never
     : P extends `${string}$null${string}`
     ? never
-    : P]: O[P]
+    : P]: InferType<O[P]>
 } & {
   [P in keyof O as P extends `${infer H}$nullable${infer T}`
     ? `${H}${T}`
     : P extends `${infer H}$null${infer T}`
     ? `${H}${T}`
-    : never]: null | O[P]
+    : never]: null | InferType<O[P]>
 }
 
 type InferOptionalField<O> = {
@@ -1111,13 +1111,13 @@ type InferOptionalField<O> = {
     ? never
     : P extends `${string}?${string}`
     ? never
-    : P]: O[P]
+    : P]: InferType<O[P]>
 } & {
   [P in keyof O as P extends `${infer H}$optional${infer T}`
     ? `${H}${T}`
     : P extends `${infer H}?${infer T}`
     ? `${H}${T}`
-    : never]?: O[P]
+    : never]?: InferType<O[P]>
 }
 
 type InferObjectType<T> = InferOptionalField<
