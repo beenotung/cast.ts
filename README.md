@@ -4,7 +4,9 @@
   </a>
   <h1 align="center">cast.ts</h1>
   <p align="center">
-    Compose validation parsers with static type inference
+    Compose validation parsers with static type inference; or
+    <br/>
+    Auto-infer parsers from sample values
     <br/>
     cast.ts makes it easy to handle data from RESTful API
   </p>
@@ -14,7 +16,7 @@
 [![Minified Package Size](https://img.shields.io/bundlephobia/min/cast.ts)](https://bundlephobia.com/package/cast.ts)
 [![Minified and Gzipped Package Size](https://img.shields.io/bundlephobia/minzip/cast.ts)](https://bundlephobia.com/package/cast.ts)
 
-Inspired by [Zod](https://github.com/colinhacks/zod) and [tRPC](https://github.com/trpc/trpc) with automatic type conversion, type reflection and sample values.
+Inspired by [Zod](https://github.com/colinhacks/zod) and [tRPC](https://github.com/trpc/trpc) with automatic type conversion, type reflection, sample values and auto-infer from sample value.
 
 ## Feature Highlights
 
