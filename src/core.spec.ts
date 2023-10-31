@@ -402,115 +402,6 @@ describe('object parser', () => {
   email?: string
 }`)
   })
-  it('should infer enums field', () => {
-    let sampleValue = {
-      username: 'alice',
-      role_1$enums: ['admin', 'staff', 'customer'],
-      role_2$enum: ['admin', 'staff', 'customer'],
-    }
-    let parser = inferFromSampleValue(sampleValue)
-    expect(parser.type).to.equals(`{
-  username: string
-  role_1: "admin" | "staff" | "customer"
-  role_2: "admin" | "staff" | "customer"
-}`)
-  })
-  it('should infer nullable field', () => {
-    let sampleValue = {
-      id: 1,
-      cancel_time_1$nullable: new Date(),
-      cancel_time_2$null: new Date(),
-    }
-    let parser = inferFromSampleValue(sampleValue)
-    expect(parser.type).to.equals(`{
-  id: number
-  cancel_time_1: null | Date
-  cancel_time_2: null | Date
-}`)
-  })
-  it('should infer optional field', () => {
-    let sampleValue = {
-      'id': 1,
-      'cancel_time_1$optional': new Date(),
-      'cancel_time_2?': new Date(),
-    }
-    let parser = inferFromSampleValue(sampleValue)
-    expect(parser.type).to.equals(`{
-  id: number
-  cancel_time_1?: Date
-  cancel_time_2?: Date
-}`)
-    parser.parse({ id: 1 })
-  })
-  it('should infer optional, nullable and enums field in any order', () => {
-    let variants = [
-      '$optional$nullable$enums',
-      '$null$optional$enum',
-      '$enum$optional$null',
-      '$enum$null?',
-    ]
-    for (let variant of variants) {
-      let sampleValue = {
-        id: 1,
-        ['status' + variant]: ['active', 'inactive'],
-      }
-      let parser = inferFromSampleValue(sampleValue)
-      expect(parser.type).to.equals(`{
-  id: number
-  status?: null | ("active" | "inactive")
-}`)
-    }
-  })
-  it('should infer result type without enums/nullable/optional flags', () => {
-    let parser = inferFromSampleValue({
-      'status_1$enums': ['a' as const, 'b' as const],
-      'status_2$enum': ['a' as const, 'b' as const],
-      'status_3$nullable': 's',
-      'status_4$null': 's',
-      'status_5$optional': 's',
-      'status_6?': 's',
-      'status_7$optional$nullable': 's',
-      'status_8$nullable$optional': 's',
-      'status_9$enum$nullable$optional': ['a' as const, 'b' as const],
-      'status_10$nullable$enums?': ['a' as const, 'b' as const],
-      'status_11$nullable$optional$enum': ['a' as const, 'b' as const],
-    })
-    type Result = ParseResult<typeof parser>
-    type Key = keyof Result
-    let result = parser.parse({
-      status_1: 'a',
-      status_2: 'a',
-      status_3: null,
-      status_4: null,
-    })
-    function checkType<T>(t: T) {
-      /* noop */
-    }
-    checkType<{
-      status_1: 'a' | 'b'
-      status_2: 'a' | 'b'
-      status_3: null | string
-      status_4: null | string
-      status_5?: undefined | string
-      status_6?: undefined | string
-      status_7?: undefined | null | string
-      status_8?: undefined | null | string
-      status_9?: undefined | null | 'a' | 'b'
-      status_10?: undefined | null | 'a' | 'b'
-      status_11?: undefined | null | 'a' | 'b'
-    }>(result)
-  })
-  it('should recursively infer result type', () => {
-    let parser = inferFromSampleValue({
-      a$nullable: {
-        b$optional: {
-          c$enums: ['a' as const, 'b' as const],
-        },
-      },
-    })
-    let result = parser.parse({ a: { b: { c: 'a' } } })
-    expect(result.a?.b?.c).to.equals('a')
-  })
 })
 
 describe('date parser', () => {
@@ -874,3 +765,115 @@ function testReflection<T>(options: {
     })
   }
 }
+
+describe('inferFromSampleValue', () => {
+  it('should infer enums field', () => {
+    let sampleValue = {
+      username: 'alice',
+      role_1$enums: ['admin', 'staff', 'customer'],
+      role_2$enum: ['admin', 'staff', 'customer'],
+    }
+    let parser = inferFromSampleValue(sampleValue)
+    expect(parser.type).to.equals(`{
+  username: string
+  role_1: "admin" | "staff" | "customer"
+  role_2: "admin" | "staff" | "customer"
+}`)
+  })
+  it('should infer nullable field', () => {
+    let sampleValue = {
+      id: 1,
+      cancel_time_1$nullable: new Date(),
+      cancel_time_2$null: new Date(),
+    }
+    let parser = inferFromSampleValue(sampleValue)
+    expect(parser.type).to.equals(`{
+  id: number
+  cancel_time_1: null | Date
+  cancel_time_2: null | Date
+}`)
+  })
+  it('should infer optional field', () => {
+    let sampleValue = {
+      'id': 1,
+      'cancel_time_1$optional': new Date(),
+      'cancel_time_2?': new Date(),
+    }
+    let parser = inferFromSampleValue(sampleValue)
+    expect(parser.type).to.equals(`{
+  id: number
+  cancel_time_1?: Date
+  cancel_time_2?: Date
+}`)
+    parser.parse({ id: 1 })
+  })
+  it('should infer optional, nullable and enums field in any order', () => {
+    let variants = [
+      '$optional$nullable$enums',
+      '$null$optional$enum',
+      '$enum$optional$null',
+      '$enum$null?',
+    ]
+    for (let variant of variants) {
+      let sampleValue = {
+        id: 1,
+        ['status' + variant]: ['active', 'inactive'],
+      }
+      let parser = inferFromSampleValue(sampleValue)
+      expect(parser.type).to.equals(`{
+  id: number
+  status?: null | ("active" | "inactive")
+}`)
+    }
+  })
+  it('should infer result type without enums/nullable/optional flags', () => {
+    let parser = inferFromSampleValue({
+      'status_1$enums': ['a' as const, 'b' as const],
+      'status_2$enum': ['a' as const, 'b' as const],
+      'status_3$nullable': 's',
+      'status_4$null': 's',
+      'status_5$optional': 's',
+      'status_6?': 's',
+      'status_7$optional$nullable': 's',
+      'status_8$nullable$optional': 's',
+      'status_9$enum$nullable$optional': ['a' as const, 'b' as const],
+      'status_10$nullable$enums?': ['a' as const, 'b' as const],
+      'status_11$nullable$optional$enum': ['a' as const, 'b' as const],
+    })
+    type Result = ParseResult<typeof parser>
+    type Key = keyof Result
+    let result = parser.parse({
+      status_1: 'a',
+      status_2: 'a',
+      status_3: null,
+      status_4: null,
+    })
+    function checkType<T>(t: T) {
+      /* noop */
+    }
+    checkType<{
+      status_1: 'a' | 'b'
+      status_2: 'a' | 'b'
+      status_3: null | string
+      status_4: null | string
+      status_5?: undefined | string
+      status_6?: undefined | string
+      status_7?: undefined | null | string
+      status_8?: undefined | null | string
+      status_9?: undefined | null | 'a' | 'b'
+      status_10?: undefined | null | 'a' | 'b'
+      status_11?: undefined | null | 'a' | 'b'
+    }>(result)
+  })
+  it('should recursively infer result type', () => {
+    let parser = inferFromSampleValue({
+      a$nullable: {
+        b$optional: {
+          c$enums: ['a' as const, 'b' as const],
+        },
+      },
+    })
+    let result = parser.parse({ a: { b: { c: 'a' } } })
+    expect(result.a?.b?.c).to.equals('a')
+  })
+})
