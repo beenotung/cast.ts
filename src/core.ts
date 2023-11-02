@@ -857,6 +857,39 @@ const defaultDateSampleProps: SampleProps<Date> = {
 }
 let parseDate = date().parse
 
+export type DateStringOptions = {
+  min?: number | Date | string
+  max?: number | Date | string
+}
+export function dateString(
+  options: DateStringOptions & CustomSampleOptions<string> = {},
+) {
+  let parser = string({ match: /^\d{4}-\d{2}-\d{2}$/ })
+  function parse(input: unknown): string {
+    return 'TODO'
+  }
+  return {
+    parse,
+    options,
+    type: 'string',
+    ...populateSampleProps({
+      defaultProps: defaultDateStringSampleProps,
+      customProps: options,
+    }),
+  }
+}
+const defaultDateStringSampleProps: SampleProps<string> = {
+  sampleValue: '2022-09-17',
+  randomSample: () => {
+    let date = new Date()
+    date.setFullYear(date.getFullYear() + randomDelta(10))
+    date.setMonth(date.getMonth() + randomDelta(6))
+    date.setDate(date.getDate() + randomDelta(15))
+    // return date
+    return 'TODO'
+  },
+}
+
 export function literal<T>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
     if (input === value) return value
