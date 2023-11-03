@@ -858,15 +858,49 @@ const defaultDateSampleProps: SampleProps<Date> = {
 let parseDate = date().parse
 
 export type DateStringOptions = {
+  nonEmpty?: boolean
   min?: number | Date | string
   max?: number | Date | string
 }
 export function dateString(
   options: DateStringOptions & CustomSampleOptions<string> = {},
 ) {
-  let parser = string({ match: /^\d{4}-\d{2}-\d{2}$/ })
-  function parse(input: unknown): string {
-    return 'TODO'
+  let parser = date({ min: options.min, max: options.max })
+  function parse(input: unknown, context: ParserContext = {}): string {
+    if (!options.nonEmpty && input == '') return ''
+    let expectedType = context.overrideType || 'dateString'
+    let date = parser.parse(input, { ...context, overrideType: expectedType })
+    let dateString = toDateString(date)
+    let rangeNameSuffix = ' of ' + (context.name || 'dateString')
+    if (options.min !== undefined) {
+      let min = parseDateString(options.min, {
+        name: 'min value' + rangeNameSuffix,
+      })
+      if (dateString < min) {
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'min value should be ' + JSON.stringify(options.min),
+          reasonSuffix: context.reasonSuffix,
+        })
+      }
+    }
+    if (options.max !== undefined) {
+      let max = parseDateString(options.max, {
+        name: 'max value' + rangeNameSuffix,
+      })
+      if (dateString > max) {
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'max value should be ' + JSON.stringify(options.max),
+          reasonSuffix: context.reasonSuffix,
+        })
+      }
+    }
+    return dateString
   }
   return {
     parse,
@@ -888,6 +922,16 @@ const defaultDateStringSampleProps: SampleProps<string> = {
     // return date
     return 'TODO'
   },
+}
+let parseDateString = dateString().parse
+function toDateString(date: Date): string {
+  let y = d2(date.getFullYear())
+  let m = d2(date.getMonth() + 1)
+  let d = d2(date.getDate())
+  return `${y}-${m}-${d}`
+}
+function d2(number: number): string | number {
+  return number < 10 ? '0' + number : number
 }
 
 export function literal<T>(value: T) {

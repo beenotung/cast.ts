@@ -427,6 +427,38 @@ type DateOptions = {
 }
 ```
 
+## DateString
+
+**Example values**:
+
+- `'2023-09-17'`
+- `new Date(2023-09-17)`
+- `new Date(2023-09-17).getTime()`
+- `''`
+
+**Example**:
+
+```typescript
+// sinceDate is a iso string (only date part) indicating a date in the past
+let sinceDate = dateString({ max: Date.now() }).parse(req.query.sinceDate)
+
+// untilDate is a iso string (only date part) between sinceDate and current date
+let untilDate = date({
+  max: Date.now(),
+  min: sinceDate,
+}).parse(req.query.untilDate)
+```
+
+**Options of dateString parser**:
+
+```typescript
+type DateStringOptions = {
+  nonEmpty?: boolean
+  min?: number | Date | string
+  max?: number | Date | string
+}
+```
+
 ## Url
 
 **Example**:

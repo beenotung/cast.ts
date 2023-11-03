@@ -6,6 +6,7 @@ import {
   checkbox,
   color,
   date,
+  dateString,
   email,
   float,
   id,
@@ -451,6 +452,65 @@ describe('date parser', () => {
     type: 'Date',
     sampleValue: new Date('2022-09-17'),
     customSample: () => date(mockCustomSampleProps),
+  })
+})
+
+describe('dateString parser', () => {
+  it('should reject null', () => {
+    expect(() => dateString().parse(null)).to.throw(
+      'Invalid dateString, got null',
+    )
+  })
+  it('should reject undefined', () => {
+    expect(() => dateString().parse(undefined)).to.throw(
+      'Invalid dateString, got undefined',
+    )
+  })
+  it('should reject empty string', () => {
+    expect(() => dateString({ nonEmpty: true }).parse('')).to.throw(
+      'Invalid dateString, got empty string',
+    )
+  })
+  it('should allow empty string', () => {
+    expect(dateString({ nonEmpty: false }).parse('')).to.equals('')
+  })
+  it('should accept int timestamp', () => {
+    let string = '2023-09-17'
+    let time = new Date(string).getTime()
+    expect(dateString().parse(time)).to.equals(string)
+  })
+  it('should accept date instance', () => {
+    let string = '2023-09-17'
+    let date = new Date(string)
+    expect(dateString().parse(date)).to.equals(string)
+  })
+  it('should accept dateString', () => {
+    let string = '2023-09-17'
+    expect(dateString().parse(string)).to.equals(string)
+  })
+  it('should reject too old dateString', () => {
+    expect(() =>
+      dateString({ min: '2022-09-17' }).parse('2021-09-17'),
+    ).to.throws('Invalid dateString, min value should be "2022-09-17"')
+  })
+  it('should reject too new dateString', () => {
+    expect(() =>
+      dateString({ max: '2022-09-17' }).parse('2023-09-17'),
+    ).to.throws('Invalid dateString, max value should be "2022-09-17"')
+  })
+  it('should accept value dateString within range', () => {
+    expect(
+      dateString({
+        min: '2022-01-01',
+        max: '2022-12-31',
+      }).parse('2022-09-17'),
+    ).to.deep.equals('2022-09-17')
+  })
+  testReflection({
+    parser: dateString(),
+    type: 'string',
+    sampleValue: '2022-09-17',
+    customSample: () => dateString(mockCustomSampleProps),
   })
 })
 
