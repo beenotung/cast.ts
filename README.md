@@ -429,20 +429,15 @@ type DateOptions = {
 
 ## DateString
 
-**Example values**:
-
-- `'2023-09-17'`
-- `new Date(2023-09-17)`
-- `new Date(2023-09-17).getTime()`
-- `''`
+Convert from `string` | `Date` | `number` to `string` in the format of `'yyyy-mm-dd'`
 
 **Example**:
 
 ```typescript
-// sinceDate is a iso string (only date part) indicating a date in the past
+// sinceDate is date string indicating a date in the past
 let sinceDate = dateString({ max: Date.now() }).parse(req.query.sinceDate)
 
-// untilDate is a iso string (only date part) between sinceDate and current date
+// untilDate is a date string between sinceDate and current date
 let untilDate = date({
   max: Date.now(),
   min: sinceDate,
