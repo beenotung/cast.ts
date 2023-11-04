@@ -951,8 +951,8 @@ export function d2(number: number): string | number {
 
 export type TimeStringOptions = {
   nonEmpty?: boolean
-  min?: string
-  max?: string
+  min?: number | Date | string
+  max?: number | Date | string
 }
 /**
  * @description parse time string in format 'hh:mm' from Date | string

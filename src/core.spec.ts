@@ -594,6 +594,14 @@ describe('timeString parser', () => {
       }).parse('13:45'),
     ).to.deep.equals('13:45')
   })
+  it('should allow using Date and number as min/max range', () => {
+    expect(
+      timeString({
+        min: new Date('2023-09-17 13:00'),
+        max: new Date('2023-09-17 14:00').getTime(),
+      }).parse('13:45'),
+    ).to.deep.equals('13:45')
+  })
   testReflection({
     parser: timeString(),
     type: 'string',
