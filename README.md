@@ -139,6 +139,8 @@ The field name decorators can be used in combination in any order.
   - [color](#color)
   - [object](#object)
   - [date](#date)
+  - [dateString](#datestring) (string in format `yyyy-mm-dd`)
+  - [timeString](#timestring) (string in format `hh:mm`)
   - [url](#url)
   - [email](#email)
   - [literal](#literal)
