@@ -20,6 +20,7 @@ import {
   Parser,
   ParseResult,
   string,
+  timeString,
   url,
   values,
 } from './core'
@@ -468,7 +469,7 @@ describe('dateString parser', () => {
   })
   it('should reject empty string', () => {
     expect(() => dateString({ nonEmpty: true }).parse('')).to.throw(
-      'Invalid dateString, got empty string',
+      'Invalid non-empty dateString, got empty string',
     )
   })
   it('should allow empty string', () => {
@@ -521,6 +522,83 @@ describe('dateString parser', () => {
     type: 'string',
     sampleValue: '2022-09-17',
     customSample: () => dateString(mockCustomSampleProps),
+  })
+})
+
+describe('timeString parser', () => {
+  it('should reject null', () => {
+    expect(() => timeString().parse(null)).to.throw(
+      'Invalid timeString, got null',
+    )
+  })
+  it('should reject undefined', () => {
+    expect(() => timeString().parse(undefined)).to.throw(
+      'Invalid timeString, got undefined',
+    )
+  })
+  it('should reject empty string', () => {
+    expect(() => timeString({ nonEmpty: true }).parse('')).to.throw(
+      'Invalid non-empty timeString, got empty string',
+    )
+  })
+  it('should allow empty string', () => {
+    expect(timeString({ nonEmpty: false }).parse('')).to.equals('')
+  })
+  it('should accept int timestamp', () => {
+    let string = '2023-09-17 13:45'
+    let time = new Date(string).getTime()
+    expect(timeString().parse(time)).to.equals('13:45')
+  })
+  it('should accept date instance', () => {
+    let string = '2023-09-17 13:45'
+    let date = new Date(string)
+    expect(timeString().parse(date)).to.equals('13:45')
+  })
+  it('should accept string timestamp', () => {
+    let string = '2023-09-17 13:45'
+    expect(timeString().parse(string)).to.equals('13:45')
+  })
+  it('should accept iso string timestamp', () => {
+    let string = '2023-09-07 13:45'
+    let date = new Date(string)
+    let isoString = date.toISOString()
+    expect(timeString().parse(isoString)).to.equals('13:45')
+  })
+  it('should accept timeString', () => {
+    let string = '13:45'
+    expect(timeString().parse(string)).to.equals(string)
+  })
+  it('should remove seconds from timeString', () => {
+    let string = '13:45:59'
+    expect(timeString().parse(string)).to.equals('13:45')
+  })
+  it('should remove milliseconds from timeString', () => {
+    let string = '13:45:59.123'
+    expect(timeString().parse(string)).to.equals('13:45')
+  })
+  it('should reject too old timeString', () => {
+    expect(() => timeString({ min: '14:00' }).parse('13:45')).to.throws(
+      'Invalid timeString, min value should be "14:00"',
+    )
+  })
+  it('should reject too new timeString', () => {
+    expect(() => timeString({ max: '13:45' }).parse('14:00')).to.throws(
+      'Invalid timeString, max value should be "13:45"',
+    )
+  })
+  it('should accept value timeString within range', () => {
+    expect(
+      timeString({
+        min: '13:00',
+        max: '14:00',
+      }).parse('13:45'),
+    ).to.deep.equals('13:45')
+  })
+  testReflection({
+    parser: timeString(),
+    type: 'string',
+    sampleValue: '13:45',
+    customSample: () => timeString(mockCustomSampleProps),
   })
 })
 
