@@ -484,6 +484,16 @@ describe('dateString parser', () => {
     let date = new Date(string)
     expect(dateString().parse(date)).to.equals(string)
   })
+  it('should accept string timestamp', () => {
+    let string = '2023-09-17 00:00'
+    expect(dateString().parse(string)).to.equals('2023-09-17')
+  })
+  it('should accept iso string timestamp', () => {
+    let string = '2023-09-07'
+    let date = new Date(string)
+    let isoString = date.toISOString()
+    expect(dateString().parse(isoString)).to.equals(string)
+  })
   it('should accept dateString', () => {
     let string = '2023-09-17'
     expect(dateString().parse(string)).to.equals(string)
