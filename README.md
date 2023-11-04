@@ -429,7 +429,7 @@ type DateOptions = {
 
 ## DateString
 
-Convert from `string` | `Date` | `number` to `string` in the format of `'yyyy-mm-dd'`
+Convert from `string` | `Date` | `number` to `string` in the format of `yyyy-mm-dd`
 
 **Example**:
 
@@ -456,7 +456,7 @@ type DateStringOptions = {
 
 # TimeString
 
-Convert from `string` | `Date` | `number` to `string` in the format of `'hh:mm'`
+Convert from `string` | `Date` | `number` to `string` in the format of `hh:mm`
 
 **Example**:
 
