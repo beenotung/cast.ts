@@ -717,6 +717,13 @@ describe('enums values parser', () => {
       'Invalid enums value of "role", expect ["guest","customer","shop"], got null',
     )
   })
+  it('should infer to literal type without explicit "as const"', () => {
+    let roleParser = values(['guest', 'customer', 'shop'])
+    type Role = ParseResult<typeof roleParser>
+    let role_correct: Role = 'guest'
+    // @ts-expect-error
+    let role_wrong: Role = 'admin'
+  })
   it('should reject wrong value without custom name', () => {
     expect(() => values(['guest', 'customer', 'shop']).parse(null)).to.throws(
       'Invalid enums value, expect ["guest","customer","shop"], got null',

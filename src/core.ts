@@ -1071,8 +1071,21 @@ export function literal<T>(value: T) {
   }
 }
 
+/** @description inspired from zod */
+export type Primitive =
+  | string
+  | number
+  | symbol
+  | bigint
+  | boolean
+  | null
+  | undefined
+
 /** @alias enums */
-export function values<T>(values: T[], options?: CustomSampleOptions<T>) {
+export function values<T extends Primitive>(
+  values: T[],
+  options?: CustomSampleOptions<T>,
+) {
   function parse(input: unknown, context: ParserContext = {}): T {
     for (let value of values) {
       if (input === value) return value
