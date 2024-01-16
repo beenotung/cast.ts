@@ -21,6 +21,7 @@ import {
   ParseResult,
   singletonArray,
   string,
+  timeString,
   url,
   values,
 } from './core'
@@ -469,7 +470,7 @@ describe('dateString parser', () => {
   })
   it('should reject empty string', () => {
     expect(() => dateString({ nonEmpty: true }).parse('')).to.throw(
-      'Invalid dateString, got empty string',
+      'Invalid non-empty dateString, got empty string',
     )
   })
   it('should allow empty string', () => {
@@ -484,6 +485,16 @@ describe('dateString parser', () => {
     let string = '2023-09-17'
     let date = new Date(string)
     expect(dateString().parse(date)).to.equals(string)
+  })
+  it('should accept string timestamp', () => {
+    let string = '2023-09-17 00:00'
+    expect(dateString().parse(string)).to.equals('2023-09-17')
+  })
+  it('should accept iso string timestamp', () => {
+    let string = '2023-09-07'
+    let date = new Date(string)
+    let isoString = date.toISOString()
+    expect(dateString().parse(isoString)).to.equals(string)
   })
   it('should accept dateString', () => {
     let string = '2023-09-17'
@@ -512,6 +523,91 @@ describe('dateString parser', () => {
     type: 'string',
     sampleValue: '2022-09-17',
     customSample: () => dateString(mockCustomSampleProps),
+  })
+})
+
+describe('timeString parser', () => {
+  it('should reject null', () => {
+    expect(() => timeString().parse(null)).to.throw(
+      'Invalid timeString, got null',
+    )
+  })
+  it('should reject undefined', () => {
+    expect(() => timeString().parse(undefined)).to.throw(
+      'Invalid timeString, got undefined',
+    )
+  })
+  it('should reject empty string', () => {
+    expect(() => timeString({ nonEmpty: true }).parse('')).to.throw(
+      'Invalid non-empty timeString, got empty string',
+    )
+  })
+  it('should allow empty string', () => {
+    expect(timeString({ nonEmpty: false }).parse('')).to.equals('')
+  })
+  it('should accept int timestamp', () => {
+    let string = '2023-09-17 13:45'
+    let time = new Date(string).getTime()
+    expect(timeString().parse(time)).to.equals('13:45')
+  })
+  it('should accept date instance', () => {
+    let string = '2023-09-17 13:45'
+    let date = new Date(string)
+    expect(timeString().parse(date)).to.equals('13:45')
+  })
+  it('should accept string timestamp', () => {
+    let string = '2023-09-17 13:45'
+    expect(timeString().parse(string)).to.equals('13:45')
+  })
+  it('should accept iso string timestamp', () => {
+    let string = '2023-09-07 13:45'
+    let date = new Date(string)
+    let isoString = date.toISOString()
+    expect(timeString().parse(isoString)).to.equals('13:45')
+  })
+  it('should accept timeString', () => {
+    let string = '13:45'
+    expect(timeString().parse(string)).to.equals(string)
+  })
+  it('should remove seconds from timeString', () => {
+    let string = '13:45:59'
+    expect(timeString().parse(string)).to.equals('13:45')
+  })
+  it('should remove milliseconds from timeString', () => {
+    let string = '13:45:59.123'
+    expect(timeString().parse(string)).to.equals('13:45')
+  })
+  it('should reject too old timeString', () => {
+    expect(() => timeString({ min: '14:00' }).parse('13:45')).to.throws(
+      'Invalid timeString, min value should be "14:00"',
+    )
+  })
+  it('should reject too new timeString', () => {
+    expect(() => timeString({ max: '13:45' }).parse('14:00')).to.throws(
+      'Invalid timeString, max value should be "13:45"',
+    )
+  })
+  it('should accept value timeString within range', () => {
+    expect(
+      timeString({
+        min: '13:00',
+        max: '14:00',
+      }).parse('13:45'),
+    ).to.deep.equals('13:45')
+  })
+  it('should allow using Date and number as min/max range', () => {
+    expect(
+      timeString({
+        min: new Date('2023-09-17 13:00'),
+        max: new Date('2023-09-17 14:00').getTime(),
+      }).parse('13:45'),
+    ).to.deep.equals('13:45')
+  })
+  testReflection({
+    parser: timeString(),
+    type: 'string',
+    sampleValue: '13:45',
+    customSample: () => timeString(mockCustomSampleProps),
   })
 })
 
@@ -621,6 +717,13 @@ describe('enums values parser', () => {
     ).to.throws(
       'Invalid enums value of "role", expect ["guest","customer","shop"], got null',
     )
+  })
+  it('should infer to literal type without explicit "as const"', () => {
+    let roleParser = values(['guest', 'customer', 'shop'])
+    type Role = ParseResult<typeof roleParser>
+    let role_correct: Role = 'guest'
+    // @ts-expect-error
+    let role_wrong: Role = 'admin'
   })
   it('should reject wrong value without custom name', () => {
     expect(() => values(['guest', 'customer', 'shop']).parse(null)).to.throws(

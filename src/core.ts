@@ -862,14 +862,27 @@ export type DateStringOptions = {
   min?: number | Date | string
   max?: number | Date | string
 }
+/**
+ * @description parse date string in format 'yyyy-mm-dd' from Date | string | number
+ */
 export function dateString(
   options: DateStringOptions & CustomSampleOptions<string> = {},
 ) {
-  let parser = date({ min: options.min, max: options.max })
+  let dateParser = date()
+  let stringParser = string({ trim: true, nonEmpty: options.nonEmpty })
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input == '') return ''
     let expectedType = context.overrideType || 'dateString'
-    let date = parser.parse(input, { ...context, overrideType: expectedType })
+    if (typeof input == 'string') {
+      input = stringParser.parse(input, {
+        ...context,
+        overrideType: expectedType,
+      })
+    }
+    let date = dateParser.parse(input, {
+      ...context,
+      overrideType: expectedType,
+    })
     let dateString = toDateString(date)
     let rangeNameSuffix = ' of ' + (context.name || 'dateString')
     if (options.min !== undefined) {
@@ -919,19 +932,121 @@ const defaultDateStringSampleProps: SampleProps<string> = {
     date.setFullYear(date.getFullYear() + randomDelta(10))
     date.setMonth(date.getMonth() + randomDelta(6))
     date.setDate(date.getDate() + randomDelta(15))
-    // return date
-    return 'TODO'
+    return toDateString(date)
   },
 }
 let parseDateString = dateString().parse
-function toDateString(date: Date): string {
+export function toDateString(date: Date): string {
   let y = d2(date.getFullYear())
   let m = d2(date.getMonth() + 1)
   let d = d2(date.getDate())
   return `${y}-${m}-${d}`
 }
-function d2(number: number): string | number {
+/**
+ * @description add a leading '0' padding when the number is single digit
+ */
+export function d2(number: number): string | number {
   return number < 10 ? '0' + number : number
+}
+
+export type TimeStringOptions = {
+  nonEmpty?: boolean
+  min?: number | Date | string
+  max?: number | Date | string
+}
+/**
+ * @description parse time string in format 'hh:mm' from Date | string
+ */
+export function timeString(
+  options: TimeStringOptions & CustomSampleOptions<string> = {},
+) {
+  let dateParser = date({ min: options.min, max: options.max })
+  let stringParser = string({ trim: true, nonEmpty: options.nonEmpty })
+  function parse(input: unknown, context: ParserContext = {}): string {
+    if (!options.nonEmpty && input == '') return ''
+    let expectedType = context.overrideType || 'timeString'
+    let timeString: string
+    if (typeof input === 'string' && input.includes('T')) {
+      input = new Date(input)
+    }
+    if (typeof input === 'string') {
+      let string = stringParser.parse(input, {
+        ...context,
+        overrideType: expectedType,
+      })
+      let match = string.match(/(\d{1,2}:\d{1,2})/)
+      if (!match) {
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'got string ' + JSON.stringify(input),
+          reasonSuffix: context.reasonSuffix,
+        })
+      }
+      timeString = match[1]
+    } else {
+      let date = dateParser.parse(input, {
+        ...context,
+        overrideType: expectedType,
+      })
+      timeString = toTimeString(date)
+    }
+    let rangeNameSuffix = ' of ' + (context.name || 'timeString')
+    if (options.min !== undefined) {
+      let min = parseTimeString(options.min, {
+        name: 'min value' + rangeNameSuffix,
+      })
+      if (timeString < min) {
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'min value should be ' + JSON.stringify(options.min),
+          reasonSuffix: context.reasonSuffix,
+        })
+      }
+    }
+    if (options.max !== undefined) {
+      let max = parseTimeString(options.max, {
+        name: 'max value' + rangeNameSuffix,
+      })
+      if (timeString > max) {
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'max value should be ' + JSON.stringify(options.max),
+          reasonSuffix: context.reasonSuffix,
+        })
+      }
+    }
+    return timeString
+  }
+  return {
+    parse,
+    options,
+    type: 'string',
+    ...populateSampleProps({
+      defaultProps: defaultTimeStringSampleProps,
+      customProps: options,
+    }),
+  }
+}
+const defaultTimeStringSampleProps: SampleProps<string> = {
+  sampleValue: '13:45',
+  randomSample: () => {
+    let date = new Date()
+    date.setHours(date.getHours() + randomDelta(12))
+    date.setMinutes(date.getMinutes() + randomDelta(30))
+    return toTimeString(date)
+  },
+}
+let parseTimeString = timeString().parse
+export function toTimeString(date: Date): string {
+  let h = d2(date.getHours())
+  let m = d2(date.getMinutes())
+  return `${h}:${m}`
 }
 
 export function literal<T>(value: T) {
@@ -956,8 +1071,21 @@ export function literal<T>(value: T) {
   }
 }
 
+/** @description inspired from zod */
+export type Primitive =
+  | string
+  | number
+  | symbol
+  | bigint
+  | boolean
+  | null
+  | undefined
+
 /** @alias enums */
-export function values<T>(values: T[], options?: CustomSampleOptions<T>) {
+export function values<T extends Primitive>(
+  values: T[],
+  options?: CustomSampleOptions<T>,
+) {
   function parse(input: unknown, context: ParserContext = {}): T {
     for (let value of values) {
       if (input === value) return value

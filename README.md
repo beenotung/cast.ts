@@ -139,6 +139,8 @@ The field name decorators can be used in combination in any order.
   - [color](#color)
   - [object](#object)
   - [date](#date)
+  - [dateString](#datestring) (string in format `yyyy-mm-dd`)
+  - [timeString](#timestring) (string in format `hh:mm`)
   - [url](#url)
   - [email](#email)
   - [literal](#literal)
@@ -430,20 +432,15 @@ type DateOptions = {
 
 ## DateString
 
-**Example values**:
-
-- `'2023-09-17'`
-- `new Date(2023-09-17)`
-- `new Date(2023-09-17).getTime()`
-- `''`
+Convert from `string` | `Date` | `number` to `string` in the format of `yyyy-mm-dd`
 
 **Example**:
 
 ```typescript
-// sinceDate is a iso string (only date part) indicating a date in the past
+// sinceDate is date string indicating a date in the past
 let sinceDate = dateString({ max: Date.now() }).parse(req.query.sinceDate)
 
-// untilDate is a iso string (only date part) between sinceDate and current date
+// untilDate is a date string between sinceDate and current date
 let untilDate = date({
   max: Date.now(),
   min: sinceDate,
@@ -454,6 +451,33 @@ let untilDate = date({
 
 ```typescript
 type DateStringOptions = {
+  nonEmpty?: boolean
+  min?: number | Date | string
+  max?: number | Date | string
+}
+```
+
+# TimeString
+
+Convert from `string` | `Date` | `number` to `string` in the format of `hh:mm`
+
+**Example**:
+
+```typescript
+// sinceTime is time string indicating a time in the past (same date)
+let sinceTime = timeString({ max: Date.now() }).parse(req.query.sinceTime)
+
+// untilTime is a time string between sinceTime and current time
+let untilTime = time({
+  max: Date.now(),
+  min: sinceTime,
+}).parse(req.query.untilTime)
+```
+
+**Options of timeString parser**:
+
+```typescript
+type TimeStringOptions = {
   nonEmpty?: boolean
   min?: number | Date | string
   max?: number | Date | string
