@@ -1003,7 +1003,7 @@ export let enums = values
 export type ArrayOptions = {
   minLength?: number
   maxLength?: number
-  maybeSingle?: boolean // to handle variadic value e.g. req.query.category
+  maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)
 }
 export function array<T>(
   parser: Parser<T>,

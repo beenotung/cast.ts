@@ -551,7 +551,7 @@ let item_ids = array(string(), { maybeSingle: true }).parse(req.query.item_id)
 type ArrayOptions = {
   minLength?: number
   maxLength?: number
-  maybeSingle?: boolean // to handle variadic value e.g. req.query.category
+  maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)
 }
 ```
 
