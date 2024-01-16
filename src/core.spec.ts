@@ -19,6 +19,7 @@ import {
   optional,
   Parser,
   ParseResult,
+  singletonArray,
   string,
   url,
   values,
@@ -735,6 +736,22 @@ describe('array parser', () => {
     type: 'Array<number>',
     sampleValue: [float().sampleValue],
     customSample: () => array(float(), mockCustomSampleProps),
+  })
+})
+
+describe('singletonArray parser', () => {
+  it('should unwrap first element from array', () => {
+    expect(singletonArray(string()).parse(['alice'])).to.equals('alice')
+  })
+  it('should reject empty array', () => {
+    expect(() => singletonArray(string()).parse([])).to.throws(
+      'Invalid singletonArray, minLength should be 1',
+    )
+  })
+  it('should reject array with more than one element', () => {
+    expect(() => singletonArray(string()).parse(['alice', 'bob'])).to.throws(
+      'Invalid singletonArray, maxLength should be 1',
+    )
   })
 })
 

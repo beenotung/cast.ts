@@ -145,6 +145,7 @@ The field name decorators can be used in combination in any order.
   - [values/enums](#values--enums)
 - decorator (wrapping primary parsers)
   - [array](#array)
+  - [singletonArray](#singletonarray) (for formidable v3+)
   - [nullable](#nullable)
   - [optional](#optional) (for object fields)
 
@@ -558,6 +559,32 @@ function array<T>(
   parser: Parser<T>,
   options: ArrayOptions & CustomSampleOptions<T[]> = {},
 ): Parser<T[]>
+```
+
+## SingletonArray
+
+**Example**:
+
+```typescript
+// fields.title is a single-element array of string
+// title is a string
+let title = singletonArray(string()).parse(fields.title)
+
+// example parsing result from formidable v3+
+let formInput = object({
+  fields: object({
+    title: singletonArray(string()),
+  }),
+  files: object({
+    cover_image: singletonArray(object({ newFilename: string() })),
+  }),
+}).parse({ fields, files })
+```
+
+**Options of singletonArray parser**:
+
+```typescript
+function singletonArray<T>(valueParser: Parser<T>): Parser<T>
 ```
 
 ## Nullable

@@ -1076,6 +1076,24 @@ export function array<T>(
   }
 }
 
+/** @description unwrap formidable field value from `T[]` to `T` */
+export function singletonArray<T>(valueParser: Parser<T>): Parser<T> {
+  let arrayParser = array(valueParser, { minLength: 1, maxLength: 1 })
+  function parse(input: unknown, context?: ParserContext): T {
+    let array = arrayParser.parse(input, {
+      ...context,
+      overrideType: context?.overrideType || 'singletonArray',
+    })
+    return array[0]
+  }
+  return {
+    parse,
+    type: valueParser.type,
+    sampleValue: valueParser.sampleValue,
+    randomSample: valueParser.randomSample,
+  }
+}
+
 /**
  * @description for parsing database auto-increment primary key
  */
