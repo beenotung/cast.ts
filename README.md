@@ -553,6 +553,11 @@ type ArrayOptions = {
   maxLength?: number
   maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)
 }
+
+function array<T>(
+  parser: Parser<T>,
+  options: ArrayOptions & CustomSampleOptions<T[]> = {},
+): Parser<T[]>
 ```
 
 ## Nullable
