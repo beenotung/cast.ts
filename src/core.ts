@@ -1087,7 +1087,7 @@ export type Primitive =
   | null
   | undefined
 
-/** @alias enums */
+/** @alias `enums` */
 export function values<T extends Primitive>(
   values: T[],
   options?: CustomSampleOptions<T>,
@@ -1131,7 +1131,7 @@ export function values<T extends Primitive>(
   }
 }
 
-/** @alias values */
+/** @alias `values` */
 export let enums = values
 
 export type ArrayOptions = {
