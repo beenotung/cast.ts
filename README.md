@@ -150,7 +150,7 @@ The field name decorators can be used in combination in any order.
   - [singletonArray](#singletonarray) (for formidable v3+)
   - [nullable](#nullable)
   - [optional](#optional) (for object fields)
-  - [or/union](#or) (for union type)
+  - [or/union](#or--union) (for union type)
 
 ## Parser Types and Usage Examples
 
