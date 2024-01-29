@@ -100,6 +100,12 @@ function toType(input: unknown): string {
   if (Number.isNaN(input)) {
     return 'NaN'
   }
+  if (Array.isArray(input)) {
+    return 'array'
+  }
+  if (input instanceof Date) {
+    return 'date'
+  }
   return typeof input
 }
 
