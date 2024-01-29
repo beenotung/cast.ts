@@ -7,6 +7,7 @@ import {
   color,
   date,
   dateString,
+  dict,
   email,
   float,
   id,
@@ -914,6 +915,51 @@ describe('or parser', () => {
   it('should prioritize first parser', () => {
     expect(or([string(), number()]).parse(42)).to.equals('42')
     expect(or([number(), string()]).parse('42')).to.equals(42)
+  })
+})
+
+describe('dict parser', () => {
+  it('should reject null', () => {
+    expect(() =>
+      dict({ key: string(), value: string() }).parse(null),
+    ).to.throws('Invalid dict/record, got null')
+  })
+  it('should reject number', () => {
+    expect(() => dict({ key: string(), value: string() }).parse(42)).to.throws(
+      'Invalid dict/record, got number',
+    )
+  })
+  it('should reject string', () => {
+    expect(() => dict({ key: string(), value: string() }).parse('')).to.throws(
+      'Invalid dict/record, got empty string',
+    )
+  })
+  it('should pass empty object', () => {
+    expect(dict({ key: string(), value: string() }).parse({})).to.deep.equals(
+      {},
+    )
+  })
+  const fieldNameParser = values(['create_time', 'update_time'])
+  const sortTypeParser = values(['asc', 'desc'])
+  const sortParser = dict({ key: fieldNameParser, value: sortTypeParser })
+  it('should pass dict with matched key type and value type', () => {
+    const input = { create_time: 'asc' }
+    const actual = sortParser.parse(input)
+    expect(actual).to.deep.equals(input)
+  })
+  it('should reject dict with mismatched value type', () => {
+    expect(() =>
+      sortParser.parse({
+        create_time: 'random',
+      }),
+    ).to.throws('Invalid dict/record, got "random" in value')
+  })
+  it('should reject dict with mismatched key type', () => {
+    expect(() =>
+      sortParser.parse({
+        cancel_time: 'asc',
+      }),
+    ).to.throws('Invalid dict/record, got "cancel_time" in key')
   })
 })
 

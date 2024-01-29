@@ -1310,6 +1310,67 @@ export function or<P extends Parser<any>>(
 /** @alias `or` */
 export let union = or
 
+/** @alias `record` */
+export function dict<K extends PropertyKey, V>(
+  options: {
+    key?: Parser<K>
+    value: Parser<V>
+  } & CustomSampleOptions<Record<K, V>>,
+) {
+  const keyParser =
+    options.key || (string({ nonEmpty: false }) as Parser<any> as Parser<K>)
+  const valueParser = options.value
+  const keyType = getParserType(keyParser)
+  const valueType = getParserType(valueParser)
+  const recordType = `Record<${keyType},${valueType}>`
+  const objectParser = object({})
+  function parse(_input: unknown, context: ParserContext = {}): Record<K, V> {
+    let overrideType = context.overrideType || 'dict/record'
+    objectParser.parse(_input, { ...context, overrideType })
+    const input = _input as Record<any, any>
+    const record = {} as Record<K, V>
+    for (let _key in input) {
+      const key = keyParser.parse(_key, {
+        ...context,
+        overrideType,
+        reasonSuffix: 'in key',
+      })
+      const _value = input[_key]
+      const value = valueParser.parse(_value, {
+        ...context,
+        overrideType,
+        reasonSuffix: 'in value',
+      })
+      record[key] = value
+    }
+    return record
+  }
+  return {
+    parse,
+    options,
+    type: recordType,
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: {} as Record<K, V>,
+        randomSample() {
+          const record = {} as Record<K, V>
+          const n = Math.random() * 10
+          for (let i = 0; i < n; i++) {
+            const key = keyParser.randomSample()
+            const value = valueParser.randomSample()
+            record[key] = value
+          }
+          return record
+        },
+      },
+      customProps: options,
+    }),
+  }
+}
+
+/** @alias `dict` */
+export let record = dict
+
 function errorToReason(error: any): string {
   if (error instanceof Error) {
     return error.message

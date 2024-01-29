@@ -151,6 +151,7 @@ The field name decorators can be used in combination in any order.
   - [nullable](#nullable)
   - [optional](#optional) (for object fields)
   - [or/union](#or--union) (for union type)
+  - [dict/record](#dict--record) (for key-value pairs)
 
 ## Parser Types and Usage Examples
 
@@ -686,6 +687,34 @@ function or<T>(
 
 // alias
 let union = or
+```
+
+## Dict / Record
+
+**Example**:
+
+```typescript
+const fieldNameParser = values(['create_time', 'update_time'])
+const sortTypeParser = values(['asc', 'desc'])
+const queryParser = object({
+  sort: dict({ key: fieldNameParser, value: sortTypeParser }),
+})
+// query.sort is `Record<"create_time" | "update_time", "asc" | "desc">`
+let query = queryParser.parse(req.body)
+```
+
+**Options of dict/record parser**:
+
+```typescript
+function dict<K extends PropertyKey, V>(
+  options: {
+    key?: Parser<K>
+    value: Parser<V>
+  } & CustomSampleOptions<Record<K, V>>,
+): Parser<Record<K, V>>
+
+// alias
+let record = dict
 ```
 
 ## Acknowledgments
