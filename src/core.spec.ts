@@ -17,6 +17,7 @@ import {
   number,
   object,
   optional,
+  or,
   Parser,
   ParseResult,
   singletonArray,
@@ -877,6 +878,42 @@ describe('id parser', () => {
     parser: id(),
     type: 'number',
     customSample: () => id(mockCustomSampleProps),
+  })
+})
+
+describe('or parser', () => {
+  it('should reject null', () => {
+    expect(() => or([string(), number()]).parse(null)).to.throws(
+      'Invalid union type of (string | number), got null',
+    )
+  })
+  it('should reject undefined', () => {
+    expect(() => or([string(), number()]).parse(undefined)).to.throws(
+      'Invalid union type of (string | number), got undefined',
+    )
+  })
+  it('should reject array', () => {
+    expect(() => or([string(), number()]).parse([])).to.throws(
+      'Invalid union type of (string | number), got array',
+    )
+  })
+  it('should pass first parser', () => {
+    expect(or([literal('a'), literal('b')]).parse('a')).to.equals('a')
+  })
+  it('should pass second parser', () => {
+    expect(or([literal('a'), literal('b')]).parse('b')).to.equals('b')
+  })
+  it('should reject when both parsers reject', () => {
+    expect(() => or([literal('a'), literal('b')]).parse('c')).to.throws(
+      'Invalid union type of ("a" | "b"), got string',
+    )
+  })
+  it('should pass second parser', () => {
+    expect(or([literal('a'), literal('b')]).parse('b')).to.equals('b')
+  })
+  it('should prioritize first parser', () => {
+    expect(or([string(), number()]).parse(42)).to.equals('42')
+    expect(or([number(), string()]).parse('42')).to.equals(42)
   })
 })
 

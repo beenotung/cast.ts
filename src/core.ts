@@ -1055,7 +1055,7 @@ export function toTimeString(date: Date): string {
   return `${h}:${m}`
 }
 
-export function literal<T>(value: T) {
+export function literal<T extends Primitive>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
     if (input === value) return value
     let expectedType =
@@ -1248,6 +1248,73 @@ export function id(options?: CustomSampleOptions<number>) {
 const defaultIdSampleProps: SampleProps<number> = {
   sampleValue: 1,
   randomSample: randomId,
+}
+
+/** @alias `union` */
+export function or<P extends Parser<any>>(
+  parsers: P[],
+  options: CustomSampleOptions<ParseResult<P>> = {},
+) {
+  if (parsers.length == 0) {
+    throw new Error('or/union parser requires at least one parser')
+  }
+  const unionType = '(' + parsers.map(getParserType).join(' | ') + ')'
+  function parse(input: unknown, context: ParserContext = {}): ParseResult<P> {
+    let { typePrefix, reasonSuffix } = context
+    let errors: unknown[] = []
+    for (let parser of parsers) {
+      try {
+        return parser.parse(input, {
+          ...context,
+          typePrefix: typePrefix,
+          reasonSuffix: reasonSuffix,
+        })
+      } catch (error) {
+        errors.push(error)
+      }
+    }
+    const expectedType = context.overrideType || 'union type of ' + unionType
+    const reasons = errors.map(errorToReason)
+    const got = Array.from(
+      new Set(reasons.map(reason => reason.match(/got (.*)$/)?.[1])),
+    )
+    const unionReason =
+      got.length === 1
+        ? 'got ' + got[0]
+        : reasons.map(reason => `(${reason})`).join(' and ')
+    throw new InvalidInputError({
+      name: context.name,
+      typePrefix,
+      expectedType,
+      reason: unionReason,
+      reasonSuffix,
+    })
+  }
+  return {
+    parse,
+    parsers,
+    options,
+    type: unionType,
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: parsers[0]!.sampleValue,
+        randomSample() {
+          return randomElement(parsers).randomSample()
+        },
+      },
+      customProps: options,
+    }),
+  }
+}
+
+/** @alias `or` */
+export let union = or
+
+function errorToReason(error: any): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
 }
 
 function randomId() {

@@ -150,6 +150,7 @@ The field name decorators can be used in combination in any order.
   - [singletonArray](#singletonarray) (for formidable v3+)
   - [nullable](#nullable)
   - [optional](#optional) (for object fields)
+  - [or/union](#or) (for union type)
 
 ## Parser Types and Usage Examples
 
@@ -653,6 +654,38 @@ let searchQuery = object({
 
 ```typescript
 function optional<T>(parser: Parser<T>): Parser<T | undefined>
+```
+
+## Or / Union
+
+**Example**:
+
+```typescript
+// filter1.is_cancelled is `boolean | { $notNull: boolean } | { $null: boolean }`
+let filter1 = object({
+  is_cancelled: union([
+    boolean(),
+    object({ $notNull: boolean() }),
+    object({ $null: boolean() }),
+  ]),
+}).parse(req.body)
+
+// filter2.category is `false | Array<number>`
+let filter2 = object({
+  category: or([literal(false), array(id())]),
+})
+```
+
+**Options of union parser**:
+
+```typescript
+function or<T>(
+  parsers: Parser<T>[],
+  options: CustomSampleOptions<T> = {},
+): Parser<T>
+
+// alias
+let union = or
 ```
 
 ## Acknowledgments
