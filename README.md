@@ -553,6 +553,9 @@ let color = values([
 
 ```typescript
 function values<T>(values: T[]): Parser<T>
+
+// alias
+let enums = values
 ```
 
 The function `values()` is also aliased as `enums()`
