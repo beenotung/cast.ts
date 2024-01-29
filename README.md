@@ -676,7 +676,7 @@ let filter2 = object({
 })
 ```
 
-**Options of union parser**:
+**Options of or/union parser**:
 
 ```typescript
 function or<T>(
