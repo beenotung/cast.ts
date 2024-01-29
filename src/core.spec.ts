@@ -9,6 +9,7 @@ import {
   dateString,
   dict,
   email,
+  enums,
   float,
   id,
   inferFromSampleValue,
@@ -21,6 +22,7 @@ import {
   or,
   Parser,
   ParseResult,
+  record,
   singletonArray,
   string,
   timeString,
@@ -746,6 +748,9 @@ describe('enums values parser', () => {
       'guest',
     )
   })
+  it('should alias to enums', () => {
+    expect(values).to.equals(enums)
+  })
   testReflection({
     parser: values(['user', 'admin']),
     type: '"user" | "admin"',
@@ -960,6 +965,9 @@ describe('dict parser', () => {
         cancel_time: 'asc',
       }),
     ).to.throws('Invalid dict/record, got "cancel_time" in key')
+  })
+  it('should alias to record', () => {
+    expect(dict).to.equals(record)
   })
 })
 
