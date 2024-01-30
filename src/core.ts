@@ -1422,16 +1422,11 @@ function isSimpleType(type: string): boolean {
   return !!type.match(/^\w+$/)
 }
 
-type KeysOfType<O, T> = {
-  [P in keyof O]: T extends O[P] ? P : never
-}[keyof O]
-
-type OptionalProperties<T> = Partial<Pick<T, KeysOfType<T, undefined>>>
-
-type RequiredProperties<T> = Omit<T, KeysOfType<T, undefined>>
-
-type InferObjectWithOptionalField<O extends object> = OptionalProperties<O> &
-  RequiredProperties<O>
+type InferObjectWithOptionalField<T extends object> = keyof {
+  [P in keyof T as undefined extends T[P] ? P : never]: true
+} extends infer K extends keyof T
+  ? Partial<Pick<T, K>> & Omit<T, K>
+  : never
 
 type InferEnumsField<O> = {
   [P in keyof O as P extends `${string}$enums${string}`
