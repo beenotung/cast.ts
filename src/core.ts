@@ -553,7 +553,7 @@ export function object<T extends object>(
         reasonSuffix: context.reasonSuffix,
       })
     }
-    let object: InferObjectWithOptionalField<T> = {} as any
+    let object: Record<any, any> = {}
     for (let key in fieldParsers) {
       let valueParser = fieldParsers[key]
       if (!(key in input)) {
@@ -581,7 +581,7 @@ export function object<T extends object>(
       })
       object[key] = value
     }
-    return object
+    return object as InferObjectWithOptionalField<T>
   }
 
   function getDefaultSampleValue(): T {
