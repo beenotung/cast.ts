@@ -315,7 +315,7 @@ describe('object parser', () => {
       ).to.throw('Invalid string "req.body.username", minLength should be 3')
     })
   })
-  it('should allow skipping optional field', () => {
+  it('should allow skipping optional field (value)', () => {
     expect(
       object({
         username: string(),
@@ -326,6 +326,30 @@ describe('object parser', () => {
     ).to.deep.equals({
       username: 'alice',
     })
+  })
+  it('should allow skipping optional field (type)', () => {
+    let userParser = object({
+      username: string(),
+      is_admin: optional(boolean()),
+    })
+    type User = ParseResult<typeof userParser>
+    let user1: User = {
+      username: 'alice',
+      is_admin: true,
+    }
+    let user2: User = {
+      username: 'alice',
+      is_admin: undefined,
+    }
+    let user3: User = {
+      username: 'alice',
+    }
+    // @ts-expect-error
+    let user4: User = {
+      is_admin: true,
+    }
+    // @ts-expect-error
+    let user5: User = {}
   })
   it('should allow optional field to be null', () => {
     expect(

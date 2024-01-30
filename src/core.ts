@@ -529,7 +529,10 @@ export function object<T extends object>(
   fieldParsers: ObjectFieldParsers<T> = {} as any,
   options?: CustomSampleOptions<T>,
 ) {
-  function parse(input: unknown, context: ParserContext = {}): T {
+  function parse(
+    input: unknown,
+    context: ParserContext = {},
+  ): InferObjectWithOptionalField<T> {
     let name = context.name
     let expectedType = context.overrideType || 'object'
     if (input === null) {
@@ -550,7 +553,7 @@ export function object<T extends object>(
         reasonSuffix: context.reasonSuffix,
       })
     }
-    let object: T = {} as any
+    let object: InferObjectWithOptionalField<T> = {} as any
     for (let key in fieldParsers) {
       let valueParser = fieldParsers[key]
       if (!(key in input)) {
@@ -1418,6 +1421,17 @@ export function getParserType(parser: Partial<Parser<any>>): string {
 function isSimpleType(type: string): boolean {
   return !!type.match(/^\w+$/)
 }
+
+type KeysOfType<O, T> = {
+  [P in keyof O]: T extends O[P] ? P : never
+}[keyof O]
+
+type OptionalProperties<T> = Partial<Pick<T, KeysOfType<T, undefined>>>
+
+type RequiredProperties<T> = Omit<T, KeysOfType<T, undefined>>
+
+type InferObjectWithOptionalField<O extends object> = OptionalProperties<O> &
+  RequiredProperties<O>
 
 type InferEnumsField<O> = {
   [P in keyof O as P extends `${string}$enums${string}`
