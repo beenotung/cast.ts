@@ -122,7 +122,7 @@ describe('number parser', () => {
 
 describe('int parser', () => {
   it('should auto convert string to number', () => {
-    expect(int().parse(42)).to.equals(42)
+    expect(int().parse('42')).to.equals(42)
   })
   it('should reject floating point numbers', () => {
     expect(() => int().parse(4.2)).to.throw(
