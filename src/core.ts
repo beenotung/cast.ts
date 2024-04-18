@@ -1474,7 +1474,7 @@ type InferObjectType<T> = InferOptionalField<
   InferNullableField<InferEnumsField<T>>
 >
 
-type InferType<T> = T extends Array<infer E>
+export type InferType<T> = T extends Array<infer E>
   ? Array<InferType<E>>
   : T extends {}
   ? InferObjectType<T>
