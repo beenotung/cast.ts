@@ -112,17 +112,29 @@ describe('number parser', () => {
   it('should allow negative numbers', () => {
     expect(number().parse(-42)).to.equals(-42)
   })
-  it('should parse human readable format', () => {
+  describe('human readable format', () => {
     let parser = number({ readable: true })
-    expect(parser.parse('3.5k')).to.equals(3.5e3)
-    expect(parser.parse('3.5m')).to.equals(3.5e6)
-    expect(parser.parse('3.5b')).to.equals(3.5e9)
-    expect(parser.parse('3.5t')).to.equals(3.5e12)
+    it('should parse k/m/b/t units', () => {
+      expect(parser.parse('3.5k')).to.equals(3.5e3)
+      expect(parser.parse('3.5m')).to.equals(3.5e6)
+      expect(parser.parse('3.5b')).to.equals(3.5e9)
+      expect(parser.parse('3.5t')).to.equals(3.5e12)
 
-    expect(parser.parse('3.5K')).to.equals(3.5e3)
-    expect(parser.parse('3.5M')).to.equals(3.5e6)
-    expect(parser.parse('3.5B')).to.equals(3.5e9)
-    expect(parser.parse('3.5T')).to.equals(3.5e12)
+      expect(parser.parse('3.5K')).to.equals(3.5e3)
+      expect(parser.parse('3.5M')).to.equals(3.5e6)
+      expect(parser.parse('3.5B')).to.equals(3.5e9)
+      expect(parser.parse('3.5T')).to.equals(3.5e12)
+    })
+    it('should skip spaces', () => {
+      expect(parser.parse('12 4')).to.equals(124)
+    })
+    it('should skip hyphen', () => {
+      expect(parser.parse('12-4')).to.equals(124)
+    })
+    it('should remove comma', () => {
+      expect(parser.parse('123,456,789')).to.equals(123456789)
+      expect(parser.parse('123,456.00')).to.equals(123456)
+    })
   })
   testReflection({
     parser: number(),

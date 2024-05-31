@@ -264,6 +264,12 @@ let height = number({ min: 0 }).parse(req.body.height)
 
 // stars is a non-NaN number
 let stars = number({ readable: true }).parse('3.5k')
+
+// tel is a number (85298765432)
+let tel = number({ readable: true }).parse('852 9876-5432')
+
+// amount is a number (123456)
+let amount = number({ readable: true }).parse('123,456.00')
 ```
 
 **Options of number parser**:
@@ -274,6 +280,8 @@ type NumberOptions = {
   max?: number
   /** @description turn `"3.5k"` into `3500` if enabled */
   readable?: boolean
+  /** @example `"tr"` to treat `3,14` as `3.14` if `readable` is true */
+  locale?: string
 }
 ```
 

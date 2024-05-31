@@ -386,6 +386,8 @@ export type NumberOptions = {
   max?: number
   /** @description turn `"3.5k"` into `3500` if enabled */
   readable?: boolean
+  /** @example `"tr"` to treat `3,14` as `3.14` if `readable` is true */
+  locale?: string
 }
 export function number(
   options: NumberOptions & CustomSampleOptions<number> = {},
@@ -395,7 +397,11 @@ export function number(
     let type = toType(input)
     if (typeof input === 'string') {
       input = options.readable
-        ? parseReadableNumber(input, expectedType, context)
+        ? parseReadableNumber(input, {
+            expectedType,
+            context,
+            locale: options.locale,
+          })
         : +input
     }
     if (typeof input !== 'number') {
@@ -457,9 +463,20 @@ export function number(
 /** @description parse `"3.5k"` into `3500` */
 function parseReadableNumber(
   str: string,
-  expectedType: string,
-  context: ParserContext,
+  options: {
+    context: ParserContext
+    expectedType: string
+    locale?: string
+  },
 ): number {
+  let { context } = options
+
+  str = str.replace(/ /g, '').replace(/-/g, '')
+  if ((3.14).toLocaleString(options.locale) == '3.14') {
+    str = str.replace(/,/g, '')
+  } else {
+    str = str.replace(/\./g, '')
+  }
   if (str == '0') return 0
   let val = +str
   if (+val) return val
@@ -472,7 +489,7 @@ function parseReadableNumber(
       name: context.name,
       typePrefix: context.typePrefix,
       reasonSuffix: context.reasonSuffix,
-      expectedType,
+      expectedType: options.expectedType,
       reason: 'got ' + JSON.stringify(str),
     })
   }
@@ -495,7 +512,7 @@ function parseReadableNumber(
         name: context.name,
         typePrefix: context.typePrefix,
         reasonSuffix: context.reasonSuffix,
-        expectedType,
+        expectedType: options.expectedType,
         reason: 'got unit ' + JSON.stringify(unit),
       })
   }
