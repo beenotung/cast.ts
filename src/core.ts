@@ -384,6 +384,8 @@ const defaultColorSampleProps: SampleProps<string> = {
 export type NumberOptions = {
   min?: number
   max?: number
+  /** @description turn `"3.5k"` into `3500` if enabled */
+  readable?: boolean
 }
 export function number(
   options: NumberOptions & CustomSampleOptions<number> = {},
@@ -392,7 +394,9 @@ export function number(
     let expectedType = context.overrideType || 'number'
     let type = toType(input)
     if (typeof input === 'string') {
-      input = +input
+      input = options.readable
+        ? parseReadableNumber(input, expectedType, context)
+        : +input
     }
     if (typeof input !== 'number') {
       throw new InvalidInputError({
@@ -447,6 +451,53 @@ export function number(
       },
       customProps: options,
     }),
+  }
+}
+
+/** @description parse `"3.5k"` into `3500` */
+function parseReadableNumber(
+  str: string,
+  expectedType: string,
+  context: ParserContext,
+): number {
+  if (str == '0') return 0
+  let val = +str
+  if (+val) return val
+
+  let unit = str[str.length - 1]
+  val = parseFloat(str.slice(0, str.length - 1))
+  if (val == 0) return 0
+  if (!val) {
+    throw new InvalidInputError({
+      name: context.name,
+      typePrefix: context.typePrefix,
+      reasonSuffix: context.reasonSuffix,
+      expectedType,
+      reason: 'got ' + JSON.stringify(str),
+    })
+  }
+
+  switch (unit) {
+    case 'k':
+    case 'K':
+      return val * 1e3
+    case 'm':
+    case 'M':
+      return val * 1e6
+    case 'b':
+    case 'B':
+      return val * 1e9
+    case 't':
+    case 'T':
+      return val * 1e12
+    default:
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        reasonSuffix: context.reasonSuffix,
+        expectedType,
+        reason: 'got unit ' + JSON.stringify(unit),
+      })
   }
 }
 

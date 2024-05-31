@@ -261,6 +261,9 @@ let score = number().parse(req.body.score)
 
 // height is a non-negative number
 let height = number({ min: 0 }).parse(req.body.height)
+
+// stars is a non-NaN number
+let stars = number({ readable: true }).parse('3.5k')
 ```
 
 **Options of number parser**:
@@ -269,6 +272,8 @@ let height = number({ min: 0 }).parse(req.body.height)
 type NumberOptions = {
   min?: number
   max?: number
+  /** @description turn `"3.5k"` into `3500` if enabled */
+  readable?: boolean
 }
 ```
 

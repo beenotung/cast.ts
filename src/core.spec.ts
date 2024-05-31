@@ -112,6 +112,18 @@ describe('number parser', () => {
   it('should allow negative numbers', () => {
     expect(number().parse(-42)).to.equals(-42)
   })
+  it('should parse human readable format', () => {
+    let parser = number({ readable: true })
+    expect(parser.parse('3.5k')).to.equals(3.5e3)
+    expect(parser.parse('3.5m')).to.equals(3.5e6)
+    expect(parser.parse('3.5b')).to.equals(3.5e9)
+    expect(parser.parse('3.5t')).to.equals(3.5e12)
+
+    expect(parser.parse('3.5K')).to.equals(3.5e3)
+    expect(parser.parse('3.5M')).to.equals(3.5e6)
+    expect(parser.parse('3.5B')).to.equals(3.5e9)
+    expect(parser.parse('3.5T')).to.equals(3.5e12)
+  })
   testReflection({
     parser: number(),
     type: 'number',
