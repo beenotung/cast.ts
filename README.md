@@ -282,6 +282,11 @@ type NumberOptions = {
   readable?: boolean
   /** @example `"tr"` to treat `3,14` as `3.14` if `readable` is true */
   locale?: string
+  /**
+   * @description round `0.1 + 0.2` into `0.3` if enabled
+   * @default true
+   * */
+  nearest?: boolean
 }
 ```
 

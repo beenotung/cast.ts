@@ -388,6 +388,11 @@ export type NumberOptions = {
   readable?: boolean
   /** @example `"tr"` to treat `3,14` as `3.14` if `readable` is true */
   locale?: string
+  /**
+   * @description round `0.1 + 0.2` into `0.3` if enabled
+   * @default true
+   * */
+  nearest?: boolean
 }
 export function number(
   options: NumberOptions & CustomSampleOptions<number> = {},
@@ -403,6 +408,9 @@ export function number(
             locale: options.locale,
           })
         : +input
+    }
+    if (input && options.nearest != false && typeof input == 'number') {
+      input = nearestNumber(input)
     }
     if (typeof input !== 'number') {
       throw new InvalidInputError({
@@ -516,6 +524,14 @@ function parseReadableNumber(
         reason: 'got unit ' + JSON.stringify(unit),
       })
   }
+}
+
+function nearestNumber(val: number): number {
+  if (Number.isInteger(val)) return val
+  let str = val.toLocaleString('en')
+  str = str.replace(/,/g, '')
+  val = +str
+  return val
 }
 
 export type FloatOptions = NumberOptions & {

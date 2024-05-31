@@ -112,6 +112,9 @@ describe('number parser', () => {
   it('should allow negative numbers', () => {
     expect(number().parse(-42)).to.equals(-42)
   })
+  it('should round to nearest value', () => {
+    expect(number().parse(0.1 + 0.2)).to.equals(0.3)
+  })
   describe('human readable format', () => {
     let parser = number({ readable: true })
     it('should parse k/m/b/t units', () => {
@@ -124,6 +127,10 @@ describe('number parser', () => {
       expect(parser.parse('3.5M')).to.equals(3.5e6)
       expect(parser.parse('3.5B')).to.equals(3.5e9)
       expect(parser.parse('3.5T')).to.equals(3.5e12)
+    })
+    it('should round to nearest integer', () => {
+      // instead of `64900.00000000001`
+      expect(parser.parse('64.9k')).to.equals(64900)
     })
     it('should skip spaces', () => {
       expect(parser.parse('12 4')).to.equals(124)
