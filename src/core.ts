@@ -27,10 +27,12 @@ export type InvalidInputErrorOptions = {
   reasonSuffix: string | undefined
   expectedType: string
   reason: string
+  errors?: unknown[]
 }
 export class InvalidInputError extends TypeError {
   status: number
   statusCode: number
+  errors?: unknown[]
 
   constructor(options: InvalidInputErrorOptions) {
     let message = `Invalid `
@@ -48,6 +50,9 @@ export class InvalidInputError extends TypeError {
     super(message)
     this.status = 400
     this.statusCode = 400
+    if (options.errors) {
+      this.errors = options.errors
+    }
   }
 }
 
@@ -1361,20 +1366,35 @@ export function or<P extends Parser<any>>(
       }
     }
     const expectedType = context.overrideType || 'union type of ' + unionType
-    const reasons = errors.map(errorToReason)
-    const got = Array.from(
-      new Set(reasons.map(reason => reason.match(/got (.*)$/)?.[1])),
-    )
-    const unionReason =
-      got.length === 1
-        ? 'got ' + got[0]
-        : reasons.map(reason => `(${reason})`).join(' and ')
+    const types = new Set<string>()
+    const reasons = new Set<string>()
+    for (let error of errors) {
+      const reason = errorToReason(error)
+      const type = reason.match(/got (.*)$/)?.[1]
+      if (type) {
+        types.add(type)
+      } else {
+        reasons.add(reason)
+      }
+    }
+    let unionReason = Array.from(reasons, reason => `(${reason})`).join(' and ')
+    if (types.size > 0) {
+      if (unionReason) {
+        unionReason += ', '
+      }
+      unionReason +=
+        'got ' +
+        (types.size == 1
+          ? Array.from(types)[0]
+          : Array.from(types, type => `(${type})`).join(' and '))
+    }
     throw new InvalidInputError({
       name: context.name,
       typePrefix,
       expectedType,
       reason: unionReason,
       reasonSuffix,
+      errors,
     })
   }
   return {
