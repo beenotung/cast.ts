@@ -958,6 +958,11 @@ describe('or parser', () => {
       'Invalid union type of (string | number), got array',
     )
   })
+  it('should reject object', () => {
+    expect(() => or([string(), number()]).parse({})).to.throws(
+      'Invalid union type of (string | number), got object',
+    )
+  })
   it('should pass first parser', () => {
     expect(or([literal('a'), literal('b')]).parse('a')).to.equals('a')
   })
@@ -967,6 +972,87 @@ describe('or parser', () => {
   it('should reject when both parsers reject', () => {
     expect(() => or([literal('a'), literal('b')]).parse('c')).to.throws(
       'Invalid union type of ("a" | "b"), got string',
+    )
+  })
+  it('should include error message from all parsers', () => {
+    // simplified from res-index npm package detail parser
+    let unpublished_parser = object({
+      name: string(),
+      time: object({
+        created: date(),
+        modified: optional(date()),
+        unpublished: object({
+          time: date(),
+          versions: array(string()),
+        }),
+      }),
+    })
+    let published_parser = object({
+      name: string(),
+      versions: dict({
+        key: string(),
+        value: object({
+          homepage: optional(string()),
+          dist: object({
+            fileCount: optional(int({ min: 1 })),
+            unpackedSize: optional(int({ min: 1 })),
+          }),
+        }),
+      }),
+    })
+    let not_found_parser = object({
+      error: literal('Not found'),
+    })
+    let parser = or([unpublished_parser, published_parser, not_found_parser])
+    let data = {
+      name: 'svelte-icons',
+      versions: {
+        '0.0.0': {
+          name: 'svelte-icons',
+          dist: {
+            fileCount: 0,
+            unpackedSize: 0,
+            signatures: [
+              {
+                keyid: 'SHA256:jl3bw',
+                sig: 'MEQCIBy',
+              },
+            ],
+          },
+        },
+      },
+    }
+    let error
+    try {
+      parser.parse(data)
+    } catch (e) {
+      error = e
+    }
+    expect(error).not.to.be.undefined
+    expect(error.errors).to.have.lengthOf(3)
+    expect(error.message).to.equals(
+      `Invalid union type of ({
+  name: string
+  time: {
+    created: Date
+    modified?: Date
+    unpublished: {
+      time: Date
+      versions: Array<string>
+    }
+  }
+} | {
+  name: string
+  versions: Record<string,{
+    homepage?: string
+    dist: {
+      fileCount?: number
+      unpackedSize?: number
+    }
+  }>
+} | {
+  error: "Not found"
+}), (Invalid object, missing "time") and (Invalid int "versions.dist.fileCount", min value should be 1) and (Invalid object, missing "error")`,
     )
   })
   it('should pass second parser', () => {
