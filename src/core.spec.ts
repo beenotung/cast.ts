@@ -464,6 +464,26 @@ describe('object parser', () => {
   email?: string
 }`)
   })
+  describe('quote field name', () => {
+    it('should not quote field name when the field name only contains alphabets', () => {
+      let type = object({
+        id: id(),
+        name: string(),
+      }).type
+      expect(type).includes(' id: number')
+      expect(type).includes(' name: string')
+    })
+    it('should quote field name when the field name contains symbols like hyphen', () => {
+      let type = object({
+        'id': id(),
+        'name': string(),
+        'max-char': int(),
+      }).type
+      expect(type).includes("'id': number")
+      expect(type).includes("'name': string")
+      expect(type).includes("'max-char': number")
+    })
+  })
 })
 
 describe('date parser', () => {

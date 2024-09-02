@@ -710,16 +710,27 @@ export function object<T extends object>(
   let type: string
   function getType(): string {
     if (type) return type
+
+    let needQuote = Object.keys(fieldParsers)
+      .map(toFieldName)
+      .some(key => !key.match(/^[a-zA-Z0-9_]+$/))
+
     type = '{'
     for (let key in fieldParsers) {
+      let name = toFieldName(key)
+      if (needQuote) {
+        name = name.includes("'") ? JSON.stringify(name) : `'${name}'`
+      }
+
       let valueParser = fieldParsers[key]
       let value = valueParser.sampleValue
       let valueType = valueParser.type || typeof value
       valueType = valueType.replace(/\n/g, '\n  ')
+
       if (isOptional(valueParser)) {
-        type += `\n  ${key}?: ${valueType}`
+        type += `\n  ${name}?: ${valueType}`
       } else {
-        type += `\n  ${key}: ${valueType}`
+        type += `\n  ${name}: ${valueType}`
       }
     }
     type += '\n}'
@@ -1666,4 +1677,25 @@ export function inferFromSampleValue<T>(value: T): Parser<InferType<T>> {
     ) as Parser<object> as Parser<InferType<T>>
   }
   throw new Error('unsupported sample value: ' + JSON.stringify(value))
+}
+
+let fieldNameSuffices = [
+  '$enums',
+  '$enum',
+  '$nullable',
+  '$null',
+  '$optional',
+  '?',
+]
+function toFieldName(fieldName: string): string {
+  main: for (;;) {
+    for (let suffix of fieldNameSuffices) {
+      if (fieldName.endsWith(suffix)) {
+        fieldName = fieldName.slice(0, fieldName.length - suffix.length)
+        continue main
+      }
+    }
+    break
+  }
+  return fieldName
 }
