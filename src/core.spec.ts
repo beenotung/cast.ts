@@ -109,6 +109,11 @@ describe('number parser', () => {
       'Invalid number, max value should be 50',
     )
   })
+  it('should reject empty string', () => {
+    expect(() => number().parse('')).to.throw(
+      'Invalid number, got empty string',
+    )
+  })
   it('should allow negative numbers', () => {
     expect(number().parse(-42)).to.equals(-42)
   })

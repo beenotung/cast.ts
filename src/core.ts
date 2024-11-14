@@ -405,6 +405,15 @@ export function number(
   function parse(input: unknown, context: ParserContext = {}): number {
     let expectedType = context.overrideType || 'number'
     let type = toType(input)
+    if (input === '') {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'got ' + type,
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     if (typeof input === 'string') {
       input = options.readable
         ? parseReadableNumber(input, {
