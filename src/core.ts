@@ -1317,6 +1317,108 @@ export function toTimeString(date: Date): string {
   return `${h}:${m}`
 }
 
+// TODO allow omit seconds
+export type TimestampOptions = {
+  nonEmpty?: boolean
+  min?: number | Date | string
+  max?: number | Date | string
+}
+/**
+ * @description parse timestamp string in format 'yyyy-mm-dd hh:mm:ss' from Date | string
+ */
+export function timestamp(
+  options: TimestampOptions & CustomSampleOptions<string> = {},
+) {
+  let min =
+    options.min !== undefined
+      ? parseTimestamp(options.min, { name: 'options.min of timestamp' })
+      : undefined
+  let max =
+    options.max !== undefined
+      ? parseTimestamp(options.max, { name: 'options.max of timestamp' })
+      : undefined
+  let dateParser = date({ min: options.min, max: options.max })
+  function parse(input: unknown, context: ParserContext = {}): string {
+    if (!options.nonEmpty && input == '') return ''
+    let expectedType = context.overrideType || 'timestamp'
+    if (
+      options.nonEmpty &&
+      typeof input == 'string' &&
+      input.trim().length == 0
+    ) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix
+          ? 'non-empty ' + context.typePrefix
+          : 'non-empty',
+        expectedType,
+        reason: 'got empty string',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    let date = dateParser.parse(input, {
+      ...context,
+      overrideType: expectedType,
+    })
+    let timestamp = toTimestampString(date)
+    if (min !== undefined) {
+      if (timestamp < min) {
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'min value should be ' + JSON.stringify(options.min),
+          reasonSuffix: context.reasonSuffix,
+        })
+      }
+    }
+    if (max !== undefined) {
+      if (timestamp > max) {
+        throw new InvalidInputError({
+          name: context.name,
+          typePrefix: context.typePrefix,
+          expectedType,
+          reason: 'max value should be ' + JSON.stringify(options.max),
+          reasonSuffix: context.reasonSuffix,
+        })
+      }
+    }
+    return timestamp
+  }
+  return {
+    parse,
+    options,
+    type: 'string',
+    ...populateSampleProps({
+      defaultProps: defaultTimestampSampleProps,
+      customProps: options,
+    }),
+  }
+}
+const defaultTimestampSampleProps: SampleProps<string> = {
+  sampleValue: '2022-09-17 13:45:00',
+  randomSample: () => {
+    let date = new Date()
+    date.setFullYear(date.getFullYear() + randomDelta(10))
+    date.setMonth(date.getMonth() + randomDelta(6))
+    date.setDate(date.getDate() + randomDelta(15))
+    date.setHours(date.getHours() + randomDelta(12))
+    date.setMinutes(date.getMinutes() + randomDelta(30))
+    date.setSeconds(date.getSeconds() + randomDelta(30))
+    return toTimestampString(date)
+  },
+}
+let parseTimestamp = timestamp().parse
+export function toTimestampString(date: Date): string {
+  let y = date.getFullYear()
+  let m = d2(date.getMonth() + 1)
+  let d = d2(date.getDate())
+  let H = d2(date.getHours())
+  let M = d2(date.getMinutes())
+  let S = d2(date.getSeconds())
+  return `${y}-${m}-${d} ${H}:${M}:${S}`
+}
+
 export function literal<T extends Primitive>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
     if (input === value) return value

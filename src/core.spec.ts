@@ -25,6 +25,7 @@ import {
   record,
   singletonArray,
   string,
+  timestamp,
   timeString,
   url,
   values,
@@ -726,6 +727,74 @@ describe('timeString parser', () => {
     type: 'string',
     sampleValue: '13:45',
     customSample: () => timeString(mockCustomSampleProps),
+  })
+})
+
+describe('timestamp parser', () => {
+  it('should reject null', () => {
+    expect(() => timestamp().parse(null)).to.throw(
+      'Invalid timestamp, got null',
+    )
+  })
+  it('should reject undefined', () => {
+    expect(() => timestamp().parse(undefined)).to.throw(
+      'Invalid timestamp, got undefined',
+    )
+  })
+  it('should reject empty string', () => {
+    expect(() => timestamp({ nonEmpty: true }).parse('')).to.throw(
+      'Invalid non-empty timestamp, got empty string',
+    )
+  })
+  it('should allow empty string', () => {
+    expect(timestamp({ nonEmpty: false }).parse('')).to.equals('')
+  })
+  it('should accept int timestamp', () => {
+    let string = '2023-09-17 13:45:00'
+    let time = new Date(string).getTime()
+    expect(timestamp().parse(time)).to.equals(string)
+  })
+  it('should accept date instance', () => {
+    let string = '2023-09-17 13:45:00'
+    let date = new Date(string)
+    expect(timestamp().parse(date)).to.equals(string)
+  })
+  it('should accept string timestamp', () => {
+    let string = '2023-09-17 13:45'
+    expect(timestamp().parse(string)).to.equals('2023-09-17 13:45:00')
+  })
+  it('should accept iso string timestamp', () => {
+    let isoString = '2023-09-07T13:45:00'
+    let string = '2023-09-07 13:45:00'
+    expect(timestamp().parse(isoString)).to.equals(string)
+  })
+  it('should accept timestamp', () => {
+    let string = '2023-09-17 13:45:00'
+    expect(timestamp().parse(string)).to.equals(string)
+  })
+  it('should reject too old timestamp', () => {
+    expect(() =>
+      timestamp({ min: '2022-09-17 14:00:00' }).parse('2021-09-17 13:45:00'),
+    ).to.throws('Invalid timestamp, min value should be "2022-09-17 14:00:00"')
+  })
+  it('should reject too new timestamp', () => {
+    expect(() =>
+      timestamp({ max: '2022-09-17 13:00:00' }).parse('2023-09-17 13:45:00'),
+    ).to.throws('Invalid timestamp, max value should be "2022-09-17 13:00:00"')
+  })
+  it('should accept value timestamp within range', () => {
+    expect(
+      timestamp({
+        min: '2022-09-17 13:00:00',
+        max: '2022-09-17 14:00:00',
+      }).parse('2022-09-17 13:45:00'),
+    ).to.deep.equals('2022-09-17 13:45:00')
+  })
+  testReflection({
+    parser: timestamp(),
+    type: 'string',
+    sampleValue: '2022-09-17 13:45:00',
+    customSample: () => timestamp(mockCustomSampleProps),
   })
 })
 
