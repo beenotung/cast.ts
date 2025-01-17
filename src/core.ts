@@ -892,6 +892,10 @@ export type DateOptions = {
   max?: number | Date | string
 }
 export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
+  let min =
+    options.min !== undefined ? parseDate(options.min).getTime() : undefined
+  let max =
+    options.max !== undefined ? parseDate(options.max).getTime() : undefined
   function parse(input: unknown, context: ParserContext = {}): Date {
     let expectedType = context.overrideType || 'date'
     function checkDate(value: Date): Date {
@@ -906,10 +910,7 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
         })
       }
       let rangeNameSuffix = ' of ' + (context.name || 'date')
-      if (options.min !== undefined) {
-        let min = parseDate(options.min, {
-          name: 'min value' + rangeNameSuffix,
-        }).getTime()
+      if (min !== undefined) {
         if (time < min) {
           throw new InvalidInputError({
             name: context.name,
@@ -920,10 +921,7 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
           })
         }
       }
-      if (options.max !== undefined) {
-        let max = parseDate(options.max, {
-          name: 'max value' + rangeNameSuffix,
-        }).getTime()
+      if (max !== undefined) {
         if (time > max) {
           throw new InvalidInputError({
             name: context.name,
