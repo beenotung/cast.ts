@@ -5,6 +5,8 @@ import {
   boolean,
   checkbox,
   color,
+  d2,
+  d3,
   date,
   dateString,
   dict,
@@ -27,6 +29,7 @@ import {
   string,
   timestamp,
   timeString,
+  toTimestampString,
   url,
   values,
 } from './core'
@@ -790,6 +793,30 @@ describe('timestamp parser', () => {
       }).parse('2022-09-17 13:45:00'),
     ).to.deep.equals('2022-09-17 13:45:00')
   })
+  describe('precision', () => {
+    it('should default to second precision', () => {
+      expect(timestamp().parse('2022-09-17 13:45:59.123')).to.equals(
+        '2022-09-17 13:45:59',
+      )
+    })
+    it('should support millisecond precision', () => {
+      expect(
+        timestamp({ precision: 'millisecond' }).parse(
+          '2022-09-17 13:45:59.123',
+        ),
+      ).to.equals('2022-09-17 13:45:59.123')
+    })
+    it('should support second precision', () => {
+      expect(
+        timestamp({ precision: 'second' }).parse('2022-09-17 13:45:59.123'),
+      ).to.equals('2022-09-17 13:45:59')
+    })
+    it('should support minute precision', () => {
+      expect(
+        timestamp({ precision: 'minute' }).parse('2022-09-17 13:45:59.123'),
+      ).to.equals('2022-09-17 13:45')
+    })
+  })
   testReflection({
     parser: timestamp(),
     type: 'string',
@@ -1415,5 +1442,33 @@ describe('inferFromSampleValue', () => {
     })
     let result = parser.parse({ a: { b: { c: 'a' } } })
     expect(result.a?.b?.c).to.equals('a')
+  })
+})
+
+describe('d2', () => {
+  it('should add leading 0 when number is single digit', () => {
+    expect(d2(0)).to.equals('00')
+    expect(d2(1)).to.equals('01')
+    expect(d2(9)).to.equals('09')
+  })
+  it('should not add leading 0 when number is double digit', () => {
+    expect(d2(10)).to.equals(10)
+    expect(d2(99)).to.equals(99)
+  })
+})
+
+describe('d3', () => {
+  it('should add leading 0 when number is single digit', () => {
+    expect(d3(0)).to.equals('000')
+    expect(d3(1)).to.equals('001')
+    expect(d3(9)).to.equals('009')
+  })
+  it('should add leading 0 when number is double digit', () => {
+    expect(d3(10)).to.equals('010')
+    expect(d3(99)).to.equals('099')
+  })
+  it('should not add leading 0 when number is triple digit', () => {
+    expect(d3(100)).to.equals(100)
+    expect(d3(999)).to.equals(999)
   })
 })

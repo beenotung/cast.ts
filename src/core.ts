@@ -1167,6 +1167,12 @@ export function toDateString(date: Date): string {
 export function d2(number: number): string | number {
   return number < 10 ? '0' + number : number
 }
+/**
+ * @description add a leading '0' padding when the number is single digit
+ */
+export function d3(number: number): string | number {
+  return number < 10 ? '00' + number : number < 100 ? '0' + number : number
+}
 
 export type TimeStringOptions = {
   nonEmpty?: boolean
@@ -1317,11 +1323,13 @@ export function toTimeString(date: Date): string {
   return `${h}:${m}`
 }
 
-// TODO allow omit seconds
+export type TimestampPrecision = 'minute' | 'second' | 'millisecond'
 export type TimestampOptions = {
   nonEmpty?: boolean
   min?: number | Date | string
   max?: number | Date | string
+  /** @description default 'second' */
+  precision?: TimestampPrecision
 }
 /**
  * @description parse timestamp string in format 'yyyy-mm-dd hh:mm:ss' from Date | string
@@ -1329,6 +1337,7 @@ export type TimestampOptions = {
 export function timestamp(
   options: TimestampOptions & CustomSampleOptions<string> = {},
 ) {
+  let precision = options.precision || 'second'
   let min =
     options.min !== undefined
       ? parseTimestamp(options.min, { name: 'options.min of timestamp' })
@@ -1360,7 +1369,7 @@ export function timestamp(
       ...context,
       overrideType: expectedType,
     })
-    let timestamp = toTimestampString(date)
+    let timestamp = toTimestampString(date, options)
     if (min !== undefined) {
       if (timestamp < min) {
         throw new InvalidInputError({
@@ -1390,33 +1399,52 @@ export function timestamp(
     options,
     type: 'string',
     ...populateSampleProps({
-      defaultProps: defaultTimestampSampleProps,
+      defaultProps: {
+        sampleValue: toTimestampString(
+          new Date('2022-09-17 13:45:00'),
+          options,
+        ),
+        randomSample: () => {
+          let date = new Date()
+          date.setFullYear(date.getFullYear() + randomDelta(10))
+          date.setMonth(date.getMonth() + randomDelta(6))
+          date.setDate(date.getDate() + randomDelta(15))
+          date.setHours(date.getHours() + randomDelta(12))
+          date.setMinutes(date.getMinutes() + randomDelta(30))
+          date.setSeconds(date.getSeconds() + randomDelta(30))
+          date.setMilliseconds(date.getMilliseconds() + randomDelta(500))
+          return toTimestampString(date, options)
+        },
+      },
       customProps: options,
     }),
   }
 }
-const defaultTimestampSampleProps: SampleProps<string> = {
-  sampleValue: '2022-09-17 13:45:00',
-  randomSample: () => {
-    let date = new Date()
-    date.setFullYear(date.getFullYear() + randomDelta(10))
-    date.setMonth(date.getMonth() + randomDelta(6))
-    date.setDate(date.getDate() + randomDelta(15))
-    date.setHours(date.getHours() + randomDelta(12))
-    date.setMinutes(date.getMinutes() + randomDelta(30))
-    date.setSeconds(date.getSeconds() + randomDelta(30))
-    return toTimestampString(date)
-  },
-}
 let parseTimestamp = timestamp().parse
-export function toTimestampString(date: Date): string {
+export function toTimestampString(
+  date: Date,
+  options?: {
+    /** @description default 'second' */
+    precision?: TimestampPrecision
+  },
+): string {
+  let precision = options?.precision || 'second'
   let y = date.getFullYear()
   let m = d2(date.getMonth() + 1)
   let d = d2(date.getDate())
   let H = d2(date.getHours())
   let M = d2(date.getMinutes())
   let S = d2(date.getSeconds())
-  return `${y}-${m}-${d} ${H}:${M}:${S}`
+  if (precision == 'minute') {
+    return `${y}-${m}-${d} ${H}:${M}`
+  } else if (precision == 'second') {
+    return `${y}-${m}-${d} ${H}:${M}:${S}`
+  } else if (precision == 'millisecond') {
+    let ms = d3(date.getMilliseconds())
+    return `${y}-${m}-${d} ${H}:${M}:${S}.${ms}`
+  } else {
+    throw new Error('invalid precision: ' + precision)
+  }
 }
 
 export function literal<T extends Primitive>(value: T) {
