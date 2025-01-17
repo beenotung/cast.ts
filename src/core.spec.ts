@@ -517,21 +517,43 @@ describe('date parser', () => {
     expect(dateInstance.getTime()).to.equals(timestamp)
   })
   it('should reject too old date', () => {
-    expect(() => date({ min: '2022-09-17' }).parse('2021-09-17')).to.throws(
-      'Invalid date, min value should be "2022-09-17"',
-    )
+    expect(() =>
+      date({ min: '2022-09-17 13:45' }).parse('2022-09-17 13:00'),
+    ).to.throws('Invalid date, min value should be "2022-09-17 13:45"')
   })
   it('should reject too new date', () => {
-    expect(() => date({ max: '2022-09-17' }).parse('2023-09-17')).to.throws(
-      'Invalid date, max value should be "2022-09-17"',
-    )
+    expect(() =>
+      date({ max: '2022-09-17 13:45' }).parse('2022-09-17 14:00'),
+    ).to.throws('Invalid date, max value should be "2022-09-17 13:45"')
   })
   it('should accept value date within range', () => {
     expect(
-      date({ min: '2022-01-01 00:00:00', max: '2022-12-31 23:59:59' }).parse(
-        '2022-09-17',
+      date({ min: '2022-01-01 13:00:00', max: '2022-12-31 13:59:59' }).parse(
+        '2022-09-17 13:45',
       ),
-    ).to.deep.equals(new Date('2022-09-17'))
+    ).to.deep.equals(new Date('2022-09-17 13:45'))
+  })
+  it('should accept date in complete string', () => {
+    let variants = [
+      '2022-09-17T13:45:59.123Z',
+      '2022-09-17T13:45:59.123',
+      '2022-09-17T13:45:59',
+      '2022-09-17T13:45',
+      '2022-09-17 13:45:59',
+      '2022-09-17 13:45',
+      '2022-09-17',
+    ]
+    for (let variant of variants) {
+      expect(date().parse(variant)).to.deep.equals(new Date(variant))
+    }
+  })
+  it('should reject date in incomplete string', () => {
+    let variants = ['2022-09-17T13', '2022-09-17 13', '2022-09', '2022']
+    for (let variant of variants) {
+      expect(() => date().parse(variant)).to.throw(
+        `Invalid date, got string (${JSON.stringify(variant)})`,
+      )
+    }
   })
   testReflection({
     parser: date(),
@@ -644,10 +666,22 @@ describe('timeString parser', () => {
     expect(timeString().parse(string)).to.equals('13:45')
   })
   it('should accept iso string timestamp', () => {
-    let string = '2023-09-07 13:45'
-    let date = new Date(string)
-    let isoString = date.toISOString()
-    expect(timeString().parse(isoString)).to.equals('13:45')
+    let string = '2023-09-07T13:45:00.000Z'
+    expect(timeString().parse(string)).to.equals('13:45')
+  })
+  it('should accept variant of string', () => {
+    let variants = [
+      '2023-09-07T09:45:00.000Z',
+      '2023-09-07 09:45:00',
+      '2023-09-07 09:45',
+      '2023-09-07 9:45',
+      '09:45:00',
+      '09:45',
+      '9:45',
+    ]
+    for (let variant of variants) {
+      expect(timeString().parse(variant)).to.equals('09:45')
+    }
   })
   it('should accept timeString', () => {
     let string = '13:45'
