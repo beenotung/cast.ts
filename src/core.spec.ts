@@ -725,6 +725,26 @@ describe('timeString parser', () => {
       }).parse('13:45'),
     ).to.deep.equals('13:45')
   })
+  describe('precision', () => {
+    it('should default to minute precision', () => {
+      expect(timeString().parse('13:45:59.123')).to.equals('13:45')
+    })
+    it('should support millisecond precision', () => {
+      expect(
+        timeString({ precision: 'millisecond' }).parse('13:45:59.123'),
+      ).to.equals('13:45:59.123')
+    })
+    it('should support second precision', () => {
+      expect(
+        timeString({ precision: 'second' }).parse('13:45:59.123'),
+      ).to.equals('13:45:59')
+    })
+    it('should support minute precision', () => {
+      expect(
+        timeString({ precision: 'minute' }).parse('13:45:59.123'),
+      ).to.equals('13:45')
+    })
+  })
   testReflection({
     parser: timeString(),
     type: 'string',

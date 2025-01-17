@@ -1174,10 +1174,13 @@ export function d3(number: number): string | number {
   return number < 10 ? '00' + number : number < 100 ? '0' + number : number
 }
 
+export type TimePrecision = 'minute' | 'second' | 'millisecond'
 export type TimeStringOptions = {
   nonEmpty?: boolean
   min?: number | Date | string
   max?: number | Date | string
+  /** @description default 'minute' */
+  precision?: TimePrecision
 }
 /**
  * @description parse time string in format 'hh:mm' from Date | string
@@ -1191,6 +1194,7 @@ export function timeString(
           options.min,
           { name: 'options.min of timeString' },
           'timeString',
+          options,
         )
       : undefined
   let max =
@@ -1199,6 +1203,7 @@ export function timeString(
           options.max,
           { name: 'options.max of timeString' },
           'timeString',
+          options,
         )
       : undefined
   function parse(input: unknown, context: ParserContext = {}): string {
@@ -1219,7 +1224,7 @@ export function timeString(
         reasonSuffix: context.reasonSuffix,
       })
     }
-    let timeString = parseTimeString(input, context, expectedType)
+    let timeString = parseTimeString(input, context, expectedType, options)
     if (min !== undefined) {
       if (timeString < min) {
         throw new InvalidInputError({
@@ -1276,7 +1281,12 @@ function parseTimeString(
   input: unknown,
   context: ParserContext,
   expectedType: string,
+  options: {
+    /** @description default 'minute' */
+    precision?: TimePrecision
+  },
 ): string {
+  let precision = options.precision || 'minute'
   if (typeof input == 'number') {
     input = toTimeString(new Date(input))
   }
@@ -1297,14 +1307,47 @@ function parseTimeString(
       reasonSuffix: context.reasonSuffix,
     })
   }
-  let match = input.match(/(\d{1,2}):(\d{2})/)
-  if (!match) {
-    throwError()
-  }
-  let h = +match[1]
-  let m = +match[2]
-  if (0 <= h && h <= 23 && 0 <= m && m <= 59) {
-    return `${d2(h)}:${d2(m)}`
+  if (precision == 'minute') {
+    let match = input.match(/(\d{1,2}):(\d{2})/)
+    if (!match) {
+      throwError()
+    }
+    let h = +match[1]
+    let m = +match[2]
+    if (isBetween(0, h, 23) && isBetween(0, m, 59)) {
+      return `${d2(h)}:${d2(m)}`
+    }
+  } else if (precision == 'second') {
+    let match = input.match(/(\d{1,2}):(\d{2}):(\d{2})/)
+    if (!match) {
+      throwError()
+    }
+    let h = +match[1]
+    let m = +match[2]
+    let s = +match[3]
+    if (isBetween(0, h, 23) && isBetween(0, m, 59) && isBetween(0, s, 59)) {
+      return `${d2(h)}:${d2(m)}:${d2(s)}`
+    }
+  } else if (precision == 'millisecond') {
+    let match = input.match(/(\d{1,2}):(\d{2}):(\d{2})\.(\d{1,3})/)
+    if (!match) {
+      throwError()
+    }
+    let h = +match[1]
+    let m = +match[2]
+    let s = +match[3]
+    let ms = +match[4]
+    if (
+      isBetween(0, h, 23) &&
+      isBetween(0, m, 59) &&
+      isBetween(0, s, 59) &&
+      isBetween(0, ms, 999)
+    ) {
+      return `${d2(h)}:${d2(m)}:${d2(s)}.${ms.toString().padEnd(3, '0')}`
+    }
+  } else {
+    let t = precision satisfies never
+    throw new TypeError('invalid precision: ' + t)
   }
   throwError()
   function throwError(): never {
@@ -1323,7 +1366,7 @@ export function toTimeString(date: Date): string {
   return `${h}:${m}`
 }
 
-export type TimestampPrecision = 'minute' | 'second' | 'millisecond'
+export type TimestampPrecision = TimePrecision
 export type TimestampOptions = {
   nonEmpty?: boolean
   min?: number | Date | string
@@ -1443,7 +1486,8 @@ export function toTimestampString(
     let ms = d3(date.getMilliseconds())
     return `${y}-${m}-${d} ${H}:${M}:${S}.${ms}`
   } else {
-    throw new Error('invalid precision: ' + precision)
+    let t = precision satisfies never
+    throw new TypeError('invalid precision: ' + t)
   }
 }
 
@@ -1987,4 +2031,8 @@ function toFieldName(fieldName: string): string {
     break
   }
   return fieldName
+}
+
+export function isBetween(min: number, mid: number, max: number): boolean {
+  return min <= mid && mid <= max
 }
