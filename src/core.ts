@@ -943,7 +943,7 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
       return checkDate(new Date(input))
     }
     if (typeof input === 'string') {
-      return checkDate(new Date(input))
+      return checkDate(new Date(input.trim()))
     }
     throw new InvalidInputError({
       name: context.name,
@@ -987,16 +987,9 @@ export function dateString(
   options: DateStringOptions & CustomSampleOptions<string> = {},
 ) {
   let dateParser = date()
-  let stringParser = string({ trim: true, nonEmpty: options.nonEmpty })
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input == '') return ''
     let expectedType = context.overrideType || 'dateString'
-    if (typeof input == 'string') {
-      input = stringParser.parse(input, {
-        ...context,
-        overrideType: expectedType,
-      })
-    }
     let date = dateParser.parse(input, {
       ...context,
       overrideType: expectedType,
@@ -1079,7 +1072,6 @@ export function timeString(
   options: TimeStringOptions & CustomSampleOptions<string> = {},
 ) {
   let dateParser = date({ min: options.min, max: options.max })
-  let stringParser = string({ trim: true, nonEmpty: options.nonEmpty })
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input == '') return ''
     let expectedType = context.overrideType || 'timeString'
@@ -1088,10 +1080,7 @@ export function timeString(
       input = new Date(input)
     }
     if (typeof input === 'string') {
-      let string = stringParser.parse(input, {
-        ...context,
-        overrideType: expectedType,
-      })
+      let string = input.trim()
       let match = string.match(/(\d{1,2}:\d{1,2})/)
       if (!match) {
         throw new InvalidInputError({
