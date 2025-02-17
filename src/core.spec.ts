@@ -997,6 +997,9 @@ describe('nullable parser', () => {
   it('should pass non-null value', () => {
     expect(nullable(string()).parse('guest')).to.equals('guest')
   })
+  it('should treat empty string as null', () => {
+    expect(nullable(string()).parse('')).to.be.null
+  })
   it('should reject not matched value', () => {
     expect(() => nullable(string()).parse(undefined)).to.throws(
       'Invalid nullable string, got undefined',

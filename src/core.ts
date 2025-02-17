@@ -778,6 +778,7 @@ export function nullable<T>(
 ) {
   function parse(input: unknown, context: ParserContext = {}): T | null {
     if (input === null) return null
+    if (input === '') return null
     let typePrefix = context.typePrefix
     return parser.parse(input, {
       ...context,
