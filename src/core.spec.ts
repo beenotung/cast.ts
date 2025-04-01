@@ -903,6 +903,17 @@ describe('email parser', () => {
       'Invalid non-empty email, got empty string',
     )
   })
+  it('should reject invalid domain', () => {
+    expect(() => email().parse('user@example_com')).to.throws(
+      'Invalid email, domain part is incomplete',
+    )
+    expect(() => email().parse('user@example.')).to.throws(
+      'Invalid email, domain part is incomplete',
+    )
+    expect(() => email().parse('user@.com')).to.throws(
+      'Invalid email, domain part is incomplete',
+    )
+  })
   it('should reject wrong domain', () => {
     expect(() =>
       email({ domain: 'example.net' }).parse('user@example.com'),

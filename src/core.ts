@@ -314,6 +314,16 @@ export function email(
       })
     }
     let domain = match[1]
+    let domainParts = domain.split('.')
+    if (domainParts.length < 2 || domainParts.some(part => part.length === 0)) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'domain part is incomplete',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     if (typeof options.domain === 'string' && domain !== options.domain) {
       throw new InvalidInputError({
         name: context.name,
