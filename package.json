@@ -4,12 +4,15 @@
   "description": "Validation parsers with static type inference. cast.ts makes it easy to validate data from RESTful API",
   "main": "dist/core.js",
   "types": "dist/core.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "report": "nyc npm run mocha",
     "mocha": "ts-mocha src/core.spec.ts",
     "type-check": "tsc --noEmit",
     "test": "run-p mocha type-check",
-    "build": "run-s clean tsc",
+    "build": "run-s clean tsc && rimraf dist/tsconfig.tsbuildinfo",
     "clean": "rimraf dist",
     "tsc": "tsc -p ."
   },
