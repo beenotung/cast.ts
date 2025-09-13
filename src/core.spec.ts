@@ -79,6 +79,28 @@ describe('string parser', () => {
       'Invalid non-empty string, got empty string',
     )
   })
+  describe('case conversion', () => {
+    it('should convert to lower case', () => {
+      expect(string({ case: 'lower' }).parse('ALICE')).to.equals('alice')
+      expect(string({ case: 'lower' }).parse('Alice')).to.equals('alice')
+      expect(string({ case: 'lower' }).parse('alice')).to.equals('alice')
+    })
+    it('should convert to upper case', () => {
+      expect(string({ case: 'upper' }).parse('ALICE')).to.equals('ALICE')
+      expect(string({ case: 'upper' }).parse('Alice')).to.equals('ALICE')
+      expect(string({ case: 'upper' }).parse('alice')).to.equals('ALICE')
+    })
+    it('should keep the case when specified', () => {
+      expect(string({ case: 'unchanged' }).parse('ALICE')).to.equals('ALICE')
+      expect(string({ case: 'unchanged' }).parse('Alice')).to.equals('Alice')
+      expect(string({ case: 'unchanged' }).parse('alice')).to.equals('alice')
+    })
+    it('should keep the case unchanged by default', () => {
+      expect(string().parse('ALICE')).to.equals('ALICE')
+      expect(string().parse('Alice')).to.equals('Alice')
+      expect(string().parse('alice')).to.equals('alice')
+    })
+  })
   testReflection({
     parser: string(),
     type: 'string',
@@ -926,6 +948,11 @@ describe('email parser', () => {
   })
   it('should pass valid email', () => {
     expect(email().parse('user@example.net')).to.equals('user@example.net')
+  })
+  it('should normalize to lower case', () => {
+    expect(email({ case: 'lower' }).parse('Alice@example.net')).to.equals(
+      'alice@example.net',
+    )
   })
   testReflection({
     parser: email(),

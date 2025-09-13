@@ -120,6 +120,7 @@ export type StringOptions = {
   maxLength?: number
   match?: RegExp
   trim?: boolean // default true
+  case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
 }
 export function string(
   options: StringOptions & CustomSampleOptions<string> = {},
@@ -186,8 +187,17 @@ export function string(
         })
       }
     }
+    let value: string = input
+    switch (options.case) {
+      case 'lower':
+        value = value.toLowerCase()
+        break
+      case 'upper':
+        value = value.toUpperCase()
+        break
+    }
     if (options.match) {
-      if (!options.match.test(input)) {
+      if (!options.match.test(value)) {
         throw new InvalidInputError({
           name: context.name,
           typePrefix: context.typePrefix,
@@ -197,7 +207,7 @@ export function string(
         })
       }
     }
-    return input
+    return value
   }
   return {
     parse,
@@ -291,11 +301,15 @@ const defaultUrlSampleProps: SampleProps<string> = {
 let emailRegex = /^.+?@(.+)$/
 export type EmailOptions = StringOptions & {
   domain?: string
+  case?: 'lower' | 'upper' | 'unchanged' // default 'lower'
 }
 export function email(
   options: EmailOptions & CustomSampleOptions<string> = {},
 ) {
-  let parser = string(options)
+  let parser = string({
+    ...options,
+    case: options.case || 'lower',
+  })
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''
     let expectedType = context.overrideType || 'email'

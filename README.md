@@ -248,6 +248,7 @@ type StringOptions = {
   maxLength?: number
   match?: RegExp
   trim?: boolean // default true
+  case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
 }
 ```
 
@@ -537,6 +538,7 @@ let userEmail = email().parse(req.body.email)
 ```typescript
 type EmailOptions = StringOptions & {
   domain?: string
+  case?: 'lower' | 'upper' | 'unchanged' // default 'lower'
 }
 ```
 
