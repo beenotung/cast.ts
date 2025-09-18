@@ -1725,11 +1725,7 @@ export function or<P extends Parser<any>>(
     let errors: unknown[] = []
     for (let parser of parsers) {
       try {
-        return parser.parse(input, {
-          ...context,
-          typePrefix: typePrefix,
-          reasonSuffix: reasonSuffix,
-        })
+        return parser.parse(input, context)
       } catch (error) {
         errors.push(error)
       }
@@ -1785,6 +1781,105 @@ export function or<P extends Parser<any>>(
 
 /** @alias `or` */
 export let union = or
+
+/**
+ * @alias `intersect`
+ * @alias `intersection`
+ */
+export function and<P extends object>(
+  parsers: Parser<Partial<P>>[],
+  options: CustomSampleOptions<P> = {},
+) {
+  if (parsers.length === 0) {
+    throw new Error('and/intersection parser requires at least one parser')
+  }
+  const intersectionType =
+    '(' + parsers.map(parser => parser.type).join(' & ') + ')'
+  function parse(input: unknown, context: ParserContext = {}): P {
+    let { typePrefix, reasonSuffix } = context
+    let errors: unknown[] = []
+    let acc = {} as P
+    for (let parser of parsers) {
+      try {
+        Object.assign(acc, parser.parse(input, context))
+      } catch (error) {
+        errors.push(error)
+      }
+    }
+    if (errors.length === 0) {
+      return acc
+    }
+    const expectedType =
+      context.overrideType || 'intersection type of ' + intersectionType
+    const types = new Set<string>()
+    const reasons = new Set<string>()
+    const missingFields = new Set<string>()
+    for (let error of errors) {
+      const reason = errorToReason(error)
+      const type = reason.match(/got (.*)$/)?.[1]
+      if (type) {
+        types.add(type)
+        continue
+      }
+      const missingField = reason.match(/missing (.*)$/)?.[1]
+      if (missingField) {
+        missingFields.add(missingField)
+        continue
+      }
+      reasons.add(reason)
+    }
+    let intersectionReason = Array.from(reasons, reason => `(${reason})`).join(
+      ' and ',
+    )
+    if (missingFields.size > 0) {
+      intersectionReason += 'missing ' + Array.from(missingFields).join(', ')
+    }
+    if (types.size > 0) {
+      if (intersectionReason) {
+        intersectionReason += ', '
+      }
+      intersectionReason +=
+        'got ' +
+        (types.size == 1
+          ? Array.from(types)[0]
+          : Array.from(types, type => `(${type})`).join(' and '))
+    }
+    throw new InvalidInputError({
+      name: context.name,
+      typePrefix,
+      expectedType,
+      reason: intersectionReason,
+      reasonSuffix,
+      errors,
+    })
+  }
+  return {
+    parse,
+    parsers,
+    options,
+    type: intersectionType,
+    ...populateSampleProps({
+      defaultProps: {
+        sampleValue: parsers.reduce(
+          (acc, parser) => Object.assign(acc, parser.sampleValue),
+          {} as P,
+        ),
+        randomSample: () =>
+          parsers.reduce(
+            (acc, parser) => Object.assign(acc, parser.randomSample()),
+            {} as P,
+          ),
+      },
+      customProps: options,
+    }),
+  }
+}
+
+/** @alias `and` */
+export let intersect = and
+
+/** @alias `and` */
+export let intersection = and
 
 /** @alias `record` */
 export function dict<K extends PropertyKey, V>(

@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { genTsType } from 'gen-ts-type'
 import {
+  and,
   array,
   boolean,
   checkbox,
@@ -1277,6 +1278,63 @@ describe('or parser', () => {
   it('should prioritize first parser', () => {
     expect(or([string(), number()]).parse(42)).to.equals('42')
     expect(or([number(), string()]).parse('42')).to.equals(42)
+  })
+})
+
+describe('and parser', () => {
+  let idParser = object({ id: number() })
+  let nameParser = object({ name: string() })
+  type User = ParseResult<typeof idParser> & ParseResult<typeof nameParser>
+  let userParser = and<User>([idParser, nameParser])
+  const userType = `({
+  id: number
+} & {
+  name: string
+})`
+  it('should reject null', () => {
+    expect(() => userParser.parse(null)).to.throws(
+      `Invalid intersection type of ${userType}, got null`,
+    )
+  })
+  it('should reject undefined', () => {
+    expect(() => userParser.parse(undefined)).to.throws(
+      `Invalid intersection type of ${userType}, got undefined`,
+    )
+  })
+  it('should reject object with missing field', () => {
+    expect(() => userParser.parse({})).to.throws(
+      `Invalid intersection type of ${userType}, missing "id", "name"`,
+    )
+  })
+  it('should pass object with all fields', () => {
+    expect(userParser.parse({ id: 1, name: 'alice' })).to.deep.equals({
+      id: 1,
+      name: 'alice',
+    })
+  })
+  it('should pass object with extra field', () => {
+    expect(userParser.parse({ id: 1, name: 'alice', age: 18 })).to.deep.equals({
+      id: 1,
+      name: 'alice',
+    })
+  })
+  it('should prioritize last parser', () => {
+    let numberParser = object({ value: number() })
+    let stringParser = object({ value: string() })
+    let parser = and<{ value: number | string }>([numberParser, stringParser])
+    expect(parser.parse({ value: 1 })).to.deep.equals({ value: '1' })
+    expect(parser.parse({ value: '1' })).to.deep.equals({ value: '1' })
+  })
+  it('should return combined type', () => {
+    let user = userParser.parse({ id: 1, name: 'alice' })
+    user.id
+    user.name
+    // @ts-expect-error
+    user.other
+    expect(Object.keys(user)).to.deep.equals(['id', 'name'])
+    expect(typeof user.id).to.equals('number')
+    expect(typeof user.name).to.equals('string')
+    expect(userParser.type).to.equals(userType)
   })
 })
 

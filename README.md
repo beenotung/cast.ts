@@ -151,6 +151,7 @@ The field name decorators can be used in combination in any order.
   - [nullable](#nullable)
   - [optional](#optional) (for object fields)
   - [or/union](#or--union) (for union type)
+  - [and/intersect/intersection](#and--intersect--intersection) (for intersection object type)
   - [dict/record](#dict--record) (for key-value pairs)
 
 ## Parser Types and Usage Examples
@@ -707,6 +708,34 @@ function or<T>(
 
 // alias
 let union = or
+```
+
+## And / Intersect / Intersection
+
+**Example**:
+
+```typescript
+let student = object({
+  subject: string(),
+})
+let employee = object({
+  department: string(),
+})
+type Teacher = ParseResult<typeof student> & ParseResult<typeof employee>
+let teacher = and<Teacher>([student, employee])
+```
+
+**Options of and/intersection parser**:
+
+```typescript
+function and<T extends object>(
+  parsers: Parser<Partial<T>>[],
+  options: CustomSampleOptions<T> = {},
+): Parser<T>
+
+// alias
+let intersect = and
+let intersection = and
 ```
 
 ## Dict / Record
