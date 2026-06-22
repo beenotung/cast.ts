@@ -265,6 +265,28 @@ describe('boolean parser', () => {
       expect(boolean().parse('true')).to.be.true
       expect(boolean().parse('false')).to.be.false
     })
+    it('should support some english words', () => {
+      expect(boolean().parse('yes')).to.be.true
+      expect(boolean().parse('no')).to.be.false
+
+      expect(boolean().parse('Yes')).to.be.true
+      expect(boolean().parse('No')).to.be.false
+
+      expect(boolean().parse('on')).to.be.true
+      expect(boolean().parse('off')).to.be.false
+
+      expect(boolean().parse('enable')).to.be.true
+      expect(boolean().parse('disable')).to.be.false
+
+      expect(boolean().parse('enabled')).to.be.true
+      expect(boolean().parse('disabled')).to.be.false
+
+      expect(boolean().parse('activate')).to.be.true
+      expect(boolean().parse('deactivate')).to.be.false
+
+      expect(boolean().parse('activated')).to.be.true
+      expect(boolean().parse('deactivated')).to.be.false
+    })
   })
   testReflection({
     parser: boolean(),

@@ -864,15 +864,34 @@ export function boolean(expectedValue?: boolean) {
 }
 function parseBooleanString(input: unknown): boolean {
   if (typeof input === 'string') {
-    input = input.trim()
-  }
-  switch (input) {
-    case 'false':
+    input = input.trim().toLowerCase()
+    if (true_values.includes(input as string)) {
+      return true
+    }
+    if (false_values.includes(input as string)) {
       return false
-    default:
-      return !!input
+    }
   }
+  return !!input
 }
+export let true_values = [
+  'true',
+  'yes',
+  'on',
+  'enable',
+  'enabled',
+  'activate',
+  'activated',
+]
+export let false_values = [
+  'false',
+  'no',
+  'off',
+  'disable',
+  'disabled',
+  'deactivate',
+  'deactivated',
+]
 
 /** @description for parsing <input type="checkbox"> in html form submission */
 export function checkbox(options?: CustomSampleOptions<boolean>) {
