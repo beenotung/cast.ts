@@ -79,15 +79,15 @@ export function populateSampleProps<T>(options: {
       sampleValue !== undefined
         ? sampleValue
         : sampleValues && sampleValues.length > 0
-        ? sampleValues[0]
-        : randomSample
-        ? randomSample()
-        : defaultProps.sampleValue,
+          ? sampleValues[0]
+          : randomSample
+            ? randomSample()
+            : defaultProps.sampleValue,
     randomSample: randomSample
       ? randomSample
       : sampleValues
-      ? () => randomElement(sampleValues)
-      : defaultProps.randomSample,
+        ? () => randomElement(sampleValues)
+        : defaultProps.randomSample,
   }
 }
 
@@ -1573,8 +1573,8 @@ export function values<T extends Primitive>(
         (typeof input == 'number'
           ? input
           : typeof input == 'string' && input.length > 0
-          ? JSON.stringify(input)
-          : toType(input)),
+            ? JSON.stringify(input)
+            : toType(input)),
       reasonSuffix: context.reasonSuffix,
     })
   }
@@ -2000,53 +2000,54 @@ type InferEnumsField<O> = {
   [P in keyof O as P extends `${string}$enums${string}`
     ? never
     : P extends `${string}$enum${string}`
-    ? never
-    : P]: O[P]
+      ? never
+      : P]: O[P]
 } & {
   [P in keyof O as P extends `${infer H}$enums${infer T}`
     ? `${H}${T}`
     : P extends `${infer H}$enum${infer T}`
-    ? `${H}${T}`
-    : never]: O[P] extends Array<infer V> ? V : O[P]
+      ? `${H}${T}`
+      : never]: O[P] extends Array<infer V> ? V : O[P]
 }
 
 type InferNullableField<O> = {
   [P in keyof O as P extends `${string}$nullable${string}`
     ? never
     : P extends `${string}$null${string}`
-    ? never
-    : P]: InferType<O[P]>
+      ? never
+      : P]: InferType<O[P]>
 } & {
   [P in keyof O as P extends `${infer H}$nullable${infer T}`
     ? `${H}${T}`
     : P extends `${infer H}$null${infer T}`
-    ? `${H}${T}`
-    : never]: null | InferType<O[P]>
+      ? `${H}${T}`
+      : never]: null | InferType<O[P]>
 }
 
 type InferOptionalField<O> = {
   [P in keyof O as P extends `${string}$optional${string}`
     ? never
     : P extends `${string}?${string}`
-    ? never
-    : P]: InferType<O[P]>
+      ? never
+      : P]: InferType<O[P]>
 } & {
   [P in keyof O as P extends `${infer H}$optional${infer T}`
     ? `${H}${T}`
     : P extends `${infer H}?${infer T}`
-    ? `${H}${T}`
-    : never]?: InferType<O[P]>
+      ? `${H}${T}`
+      : never]?: InferType<O[P]>
 }
 
 type InferObjectType<T> = InferOptionalField<
   InferNullableField<InferEnumsField<T>>
 >
 
-export type InferType<T> = T extends Array<infer E>
-  ? Array<InferType<E>>
-  : T extends {}
-  ? InferObjectType<T>
-  : T
+export type InferType<T> =
+  T extends Array<infer E>
+    ? Array<InferType<E>>
+    : T extends {}
+      ? InferObjectType<T>
+      : T
 
 export function inferFromSampleValue<T>(value: T): Parser<InferType<T>> {
   if (typeof value == 'string')
@@ -2057,12 +2058,12 @@ export function inferFromSampleValue<T>(value: T): Parser<InferType<T>> {
     return Number.isInteger(value)
       ? (int({ sampleValue: value }) as Parser<number> as Parser<InferType<T>>)
       : Math.round(value) != value
-      ? (float({ sampleValue: value }) as Parser<number> as Parser<
-          InferType<T>
-        >)
-      : (number({ sampleValue: value }) as Parser<number> as Parser<
-          InferType<T>
-        >)
+        ? (float({ sampleValue: value }) as Parser<number> as Parser<
+            InferType<T>
+          >)
+        : (number({ sampleValue: value }) as Parser<number> as Parser<
+            InferType<T>
+          >)
   if (typeof value == 'boolean')
     return boolean() as Parser<boolean> as Parser<InferType<T>>
   if (value instanceof Date)
