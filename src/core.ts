@@ -358,6 +358,9 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     }
 
     let pattern = '^' + protocol + '://' + domain
+    if (typeof options.domain === 'string') {
+      pattern += '(?:$|[/?#])'
+    }
 
     if (pattern !== defaultPattern) {
       schema.pattern = pattern

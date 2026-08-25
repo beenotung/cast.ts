@@ -1024,10 +1024,17 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
-        pattern: '^[^:]+://example\\.net',
+        pattern: '^[^:]+://example\\.net(?:$|[/?#])',
       },
-      validSampleValues: ['https://example.net'],
-      invalidSampleValues: ['https://example.com'],
+      validSampleValues: [
+        'https://example.net',
+        'https://example.net/path',
+        'https://example.net?query=value',
+      ],
+      invalidSampleValues: [
+        'https://example.com',
+        'https://example.net.evil.com',
+      ],
     },
     {
       title: 'url with fixed protocol and domain',
@@ -1035,10 +1042,16 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
-        pattern: '^https://example\\.net',
+        pattern: '^https://example\\.net(?:$|[/?#])',
       },
-      validSampleValues: ['https://example.net'],
-      invalidSampleValues: ['http://example.net'],
+      validSampleValues: [
+        'https://example.net',
+        'https://example.net/search?query=value#results',
+      ],
+      invalidSampleValues: [
+        'http://example.net',
+        'https://example.net.evil.com',
+      ],
     },
   ])
 })
