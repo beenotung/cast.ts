@@ -129,9 +129,16 @@ describe('string parser', () => {
     {
       title: 'non-empty string',
       parser: string({ nonEmpty: true }),
-      jsonSchema: { type: 'string' },
+      jsonSchema: { type: 'string', minLength: 1 },
       validSampleValues: ['text'],
       invalidSampleValues: [''],
+    },
+    {
+      title: 'length limited string',
+      parser: string({ minLength: 3, maxLength: 5 }),
+      jsonSchema: { type: 'string', minLength: 3, maxLength: 5 },
+      validSampleValues: ['ice', 'cake', 'text', 'water'],
+      invalidSampleValues: ['an', 'bucket'],
     },
   ])
 })

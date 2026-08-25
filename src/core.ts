@@ -12,6 +12,8 @@ export type Parser<T> = {
 
 export type JsonSchema = {
   type: string
+  minLength?: number
+  maxLength?: number
 }
 
 // used when building new data parser on top of existing parser
@@ -214,13 +216,21 @@ export function string(
     }
     return value
   }
+  let schema: JsonSchema = { type: 'string' }
+  if (options.nonEmpty) {
+    schema.minLength = 1
+  }
+  if (typeof options.minLength === 'number') {
+    schema.minLength = options.minLength
+  }
+  if (typeof options.maxLength === 'number') {
+    schema.maxLength = options.maxLength
+  }
   return {
     parse,
     options,
     type: 'string',
-    jsonSchema: {
-      type: 'string',
-    } satisfies JsonSchema,
+    jsonSchema: schema,
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 'text',
