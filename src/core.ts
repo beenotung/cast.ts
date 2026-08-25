@@ -251,6 +251,7 @@ export function string(
 
 let urlRegex = /^([^:]+):\/\/([^/?#]+)/
 export type UrlOptions = StringOptions & {
+  // TODO support port number
   domain?: string
   protocol?: string
   protocols?: string[]
