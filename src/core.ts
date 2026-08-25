@@ -5,8 +5,13 @@ export type ParseResult<T extends Parser<R>, R = unknown> = ReturnType<
 export type Parser<T> = {
   parse(input: unknown, context?: ParserContext): T
   type: string
+  jsonSchema?: JsonSchema
   sampleValue: T
   randomSample: () => T
+}
+
+export type JsonSchema = {
+  type: string
 }
 
 // used when building new data parser on top of existing parser
@@ -213,6 +218,9 @@ export function string(
     parse,
     options,
     type: 'string',
+    jsonSchema: {
+      type: 'string',
+    } satisfies JsonSchema,
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 'text',
@@ -1996,6 +2004,12 @@ function concat(
     return a + ' ' + b
   }
   return a || b
+}
+
+export function getParserJsonSchema(parser: Partial<Parser<any>>): JsonSchema {
+  if (parser.jsonSchema) return parser.jsonSchema
+  // TODO auto infer jsonSchema from parser
+  throw new Error('Parser has no jsonSchema')
 }
 
 export function getParserType(parser: Partial<Parser<any>>): string {

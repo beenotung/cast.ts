@@ -1,3 +1,4 @@
+import { inspect } from 'util'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 import { genTsType } from 'gen-ts-type'
@@ -15,9 +16,11 @@ import {
   email,
   enums,
   float,
+  getParserJsonSchema,
   id,
   inferFromSampleValue,
   int,
+  JsonSchema,
   literal,
   nullable,
   number,
@@ -25,6 +28,7 @@ import {
   optional,
   or,
   Parser,
+  ParserContext,
   ParseResult,
   record,
   singletonArray,
@@ -35,6 +39,8 @@ import {
   url,
   values,
 } from './core'
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
 
 let mockSampleValue: any = 'mock-sample'
 let mockRandomSample = function (): any {
@@ -44,6 +50,9 @@ let mockCustomSampleProps = {
   sampleValue: mockSampleValue,
   randomSample: mockRandomSample,
 }
+
+let ajv = new Ajv({ strict: true, allErrors: true })
+addFormats(ajv)
 
 describe('string parser', () => {
   it('should auto convert number into string', () => {
@@ -109,6 +118,22 @@ describe('string parser', () => {
     sampleValue: 'text',
     customSample: () => string(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic string',
+      parser: string(),
+      jsonSchema: { type: 'string' },
+      validSampleValues: ['text', ''],
+      invalidSampleValues: [null, NaN, 123, 3.14],
+    },
+    {
+      title: 'non-empty string',
+      parser: string({ nonEmpty: true }),
+      jsonSchema: { type: 'string' },
+      validSampleValues: ['text'],
+      invalidSampleValues: [''],
+    },
+  ])
 })
 
 describe('number parser', () => {
@@ -1614,3 +1639,54 @@ describe('d3', () => {
     expect(d3(999)).to.equals(999)
   })
 })
+
+function testJsonSchema<T>(
+  options: {
+    title: string
+    parser: Parser<T>
+    jsonSchema: JsonSchema
+    validSampleValues: T[]
+    invalidSampleValues: any[]
+  }[],
+) {
+  describe.only('json schema', () => {
+    for (let option of options) {
+      let {
+        title,
+        parser,
+        jsonSchema,
+        validSampleValues,
+        invalidSampleValues,
+      } = option
+      describe(title, () => {
+        it('should have jsonSchema', () => {
+          let actualSchema = getParserJsonSchema(parser)
+          let expectedSchema = jsonSchema
+          expect(actualSchema).to.deep.equals(expectedSchema)
+        })
+        it('should produce valid json schema', () => {
+          let schema = getParserJsonSchema(parser)
+          let validate = ajv.compile(schema)
+          expect(typeof validate).to.equals('function')
+        })
+        it('should accept valid sampleValues', () => {
+          let schema = getParserJsonSchema(parser)
+          let validate = ajv.compile(schema)
+          for (let value of validSampleValues) {
+            let result = validate(value)
+            expect(result, `valid sampleValue: ${inspect(value)}`).to.be.true
+          }
+        })
+        it('should reject invalid sampleValues', () => {
+          let schema = getParserJsonSchema(parser)
+          let validate = ajv.compile(schema)
+          for (let value of invalidSampleValues) {
+            let result = validate(value)
+            expect(result, `invalid sampleValue: ${inspect(value)}`).to.be.false
+              .false
+          }
+        })
+      })
+    }
+  })
+}
