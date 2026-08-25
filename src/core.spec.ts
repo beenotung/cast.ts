@@ -950,11 +950,16 @@ describe('url parser', () => {
     ).to.throws('Invalid url, domain should be "example.net"')
   })
   it('should pass valid url', () => {
+    let value = 'https://example.net/search?query=value&page=1#results'
     expect(
-      url({ protocol: 'https', domain: 'example.net' }).parse(
-        'https://example.net/home',
-      ),
-    ).to.equals('https://example.net/home')
+      url({ protocol: 'https', domain: 'example.net' }).parse(value),
+    ).to.equals(value)
+  })
+  it('should pass url with query but without path', () => {
+    let value = 'https://example.net?query=value&page=1#results'
+    expect(
+      url({ protocol: 'https', domain: 'example.net' }).parse(value),
+    ).to.equals(value)
   })
   it('should check multiple protocols', () => {
     expect(() =>

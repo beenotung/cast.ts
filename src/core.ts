@@ -248,7 +248,7 @@ export function string(
   }
 }
 
-let urlRegex = /^(.+?):\/\/(.+?)(\/|$)/
+let urlRegex = /^([^:]+):\/\/([^/?#]+)/
 export type UrlOptions = StringOptions & {
   domain?: string
   protocol?: string
@@ -302,7 +302,11 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
         name: context.name,
         typePrefix: context.typePrefix,
         expectedType,
-        reason: 'domain should be ' + JSON.stringify(options.domain),
+        reason:
+          'domain should be ' +
+          JSON.stringify(options.domain) +
+          ' got ' +
+          JSON.stringify(domain),
         reasonSuffix: context.reasonSuffix,
       })
     }
