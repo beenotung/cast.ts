@@ -140,6 +140,13 @@ describe('string parser', () => {
       validSampleValues: ['ice', 'cake', 'text', 'water'],
       invalidSampleValues: ['an', 'bucket'],
     },
+    {
+      title: 'string with regex',
+      parser: string({ match: /^[a-z]+$/ }),
+      jsonSchema: { type: 'string', pattern: '^[a-z]+$' },
+      validSampleValues: ['text', 'cake'],
+      invalidSampleValues: ['123', '42', 'Alice'],
+    },
   ])
 })
 
