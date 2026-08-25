@@ -982,6 +982,65 @@ describe('url parser', () => {
     ],
     customSample: () => url(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic url',
+      parser: url(),
+      jsonSchema: { type: 'string', format: 'uri' },
+      validSampleValues: [
+        'https://example.net',
+        'http://www.example.net/home',
+        'http://www.example.net/search?query=value&page=1#results',
+        'http://www.example.net?query=value&page=1#results',
+        'ftp://example.com',
+      ],
+      invalidSampleValues: [null, '', 'example.com'],
+    },
+    {
+      title: 'url with fixed protocol',
+      parser: url({ protocol: 'http' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^http://[^/?#]+',
+      },
+      validSampleValues: ['http://example.net'],
+      invalidSampleValues: ['ftp://example.com'],
+    },
+    {
+      title: 'url with multiple protocols',
+      parser: url({ protocols: ['https', 'http'] }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^(https|http)://[^/?#]+',
+      },
+      validSampleValues: ['https://example.net', 'http://example.net'],
+      invalidSampleValues: ['ftp://example.com'],
+    },
+    {
+      title: 'url with fixed domain',
+      parser: url({ domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^[^:]+://example\\.net',
+      },
+      validSampleValues: ['https://example.net'],
+      invalidSampleValues: ['https://example.com'],
+    },
+    {
+      title: 'url with fixed protocol and domain',
+      parser: url({ protocol: 'https', domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^https://example\\.net',
+      },
+      validSampleValues: ['https://example.net'],
+      invalidSampleValues: ['http://example.net'],
+    },
+  ])
 })
 
 describe('email parser', () => {

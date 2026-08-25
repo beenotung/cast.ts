@@ -15,6 +15,7 @@ export type JsonSchema = {
   minLength?: number
   maxLength?: number
   pattern?: string // regex string
+  format?: string // e.g. 'uri'
 }
 
 // used when building new data parser on top of existing parser
@@ -312,10 +313,63 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     }
     return url
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { ...getParserJsonSchema(parser) }
+    schema.format = 'uri'
+
+    let protocol = '[^:]+'
+    let domain = '[^/?#]+'
+    let defaultPattern = '^' + protocol + '://' + domain
+
+    function escape(pattern: string): string {
+      return pattern
+        .replace(/\\/g, '\\\\')
+        .replace(/\^/g, '\\^')
+        .replace(/\$/g, '\\$')
+        .replace(/\./g, '\\.')
+        .replace(/\|/g, '\\|')
+        .replace(/\?/g, '\\?')
+        .replace(/\*/g, '\\*')
+        .replace(/\+/g, '\\+')
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)')
+        .replace(/\[/g, '\\[')
+        .replace(/\]/g, '\\]')
+        .replace(/\{/g, '\\{')
+        .replace(/\}/g, '\\}')
+    }
+
+    if (typeof options.domain === 'string') {
+      domain = escape(options.domain)
+    }
+
+    let protocols: string[] = []
+    if (typeof options.protocol === 'string') {
+      protocols.push(options.protocol)
+    }
+    if (Array.isArray(options.protocols)) {
+      protocols.push(...options.protocols)
+    }
+    protocols = [...new Set(protocols)].map(escape)
+    if (protocols.length === 1) {
+      protocol = protocols[0]
+    } else if (protocols.length > 1) {
+      protocol = '(' + protocols.join('|') + ')'
+    }
+
+    let pattern = '^' + protocol + '://' + domain
+
+    if (pattern !== defaultPattern) {
+      schema.pattern = pattern
+    }
+
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultUrlSampleProps,
       customProps: options,
