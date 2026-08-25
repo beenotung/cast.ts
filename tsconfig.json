@@ -7,6 +7,10 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
+    "types": [
+      "mocha",
+    ],
+    "rootDir": "src",
     "outDir": "dist",
     "incremental": true
   },
