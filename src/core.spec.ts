@@ -1,3 +1,4 @@
+import { describe, it } from 'mocha'
 import { expect } from 'chai'
 import { genTsType } from 'gen-ts-type'
 import {
@@ -1261,7 +1262,7 @@ describe('or parser', () => {
         },
       },
     }
-    let error
+    let error: any
     try {
       parser.parse(data)
     } catch (e) {
