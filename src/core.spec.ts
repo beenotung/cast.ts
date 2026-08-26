@@ -1,3 +1,4 @@
+/// <reference types="mocha" />
 import { expect } from 'chai'
 import { genTsType } from 'gen-ts-type'
 import {
@@ -14,9 +15,11 @@ import {
   email,
   enums,
   float,
+  getParserSchema,
   id,
   inferFromSampleValue,
   int,
+  JsonSchema,
   literal,
   nullable,
   number,
@@ -105,6 +108,7 @@ describe('string parser', () => {
   testReflection({
     parser: string(),
     type: 'string',
+    schema: { type: 'string' },
     sampleValue: 'text',
     customSample: () => string(mockCustomSampleProps),
   })
@@ -178,6 +182,7 @@ describe('number parser', () => {
   testReflection({
     parser: number(),
     type: 'number',
+    schema: { type: 'number' },
     sampleValue: 3.14,
     customSample: () => number(mockCustomSampleProps),
   })
@@ -204,6 +209,7 @@ describe('int parser', () => {
   testReflection({
     parser: int(),
     type: 'number',
+    schema: { type: 'integer' },
     sampleValue: 42,
     customSample: () => int(mockCustomSampleProps),
   })
@@ -223,6 +229,7 @@ describe('float parser', () => {
   testReflection({
     parser: float(),
     type: 'number',
+    schema: { type: 'number' },
     sampleValue: 3.14,
     customSample: () => float(mockCustomSampleProps),
   })
@@ -291,6 +298,7 @@ describe('boolean parser', () => {
   testReflection({
     parser: boolean(),
     type: 'boolean',
+    schema: { type: 'boolean' },
     sampleValue: true,
     randomSamples: [true, false],
     customSample: false,
@@ -312,6 +320,7 @@ describe('checkbox parser', () => {
   testReflection({
     parser: checkbox(),
     type: 'boolean',
+    schema: { type: 'boolean' },
     sampleValue: true,
     randomSamples: [true, false],
     customSample: () => checkbox(mockCustomSampleProps),
@@ -335,6 +344,7 @@ describe('color parser', () => {
   testReflection({
     parser: color(),
     type: 'string',
+    schema: { type: 'string', pattern: '^#[0-9a-f]{6}$' },
     sampleValue: '#c0ffee',
     customSample: () => color(mockCustomSampleProps),
   })
@@ -495,12 +505,83 @@ describe('object parser', () => {
   }>
 }`)
   })
+  it('should indent object fields schema recursively', () => {
+    expect(
+      object({
+        friend: object({ username: string(), since: date() }),
+        bookmarks: array(
+          object({
+            id: id(),
+            remark: string(),
+            tags: array(object({ id: id(), name: string() })),
+          }),
+        ),
+      }).schema,
+    ).to.deep.equals({
+      type: 'object',
+      properties: {
+        friend: {
+          type: 'object',
+          properties: {
+            username: { type: 'string' },
+            since: { type: 'string', format: 'date-time' },
+          },
+          required: ['username', 'since'],
+        },
+        bookmarks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer', minimum: 1 },
+              remark: { type: 'string' },
+              tags: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'integer', minimum: 1 },
+                    name: { type: 'string' },
+                  },
+                  required: ['id', 'name'],
+                },
+              },
+            },
+            required: ['id', 'remark', 'tags'],
+          },
+        },
+      },
+      required: ['friend', 'bookmarks'],
+    })
+  })
+  it('should indicate optional field in schema', () => {
+    let parser = object({
+      username: string(),
+      email: optional(email()),
+    })
+    expect(parser.schema).to.deep.equals({
+      type: 'object',
+      properties: {
+        username: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+      },
+      required: ['username'],
+    })
+  })
   testReflection({
     parser: object({ username: string(), email: email() }),
     type: `{
   username: string
   email: string
 }`,
+    schema: {
+      type: 'object',
+      properties: {
+        username: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+      },
+      required: ['username', 'email'],
+    },
     sampleValue: {
       username: string().sampleValue,
       email: email().sampleValue,
@@ -607,6 +688,7 @@ describe('date parser', () => {
   testReflection({
     parser: date(),
     type: 'Date',
+    schema: { type: 'string', format: 'date-time' },
     sampleValue: new Date('2022-09-17'),
     customSample: () => date(mockCustomSampleProps),
   })
@@ -676,6 +758,11 @@ describe('dateString parser', () => {
   testReflection({
     parser: dateString(),
     type: 'string',
+    schema: {
+      type: 'string',
+      format: 'date',
+      pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+    },
     sampleValue: '2022-09-17',
     customSample: () => dateString(mockCustomSampleProps),
   })
@@ -793,6 +880,7 @@ describe('timeString parser', () => {
   testReflection({
     parser: timeString(),
     type: 'string',
+    schema: { type: 'string', pattern: '^\\d{2}:\\d{2}$' },
     sampleValue: '13:45',
     customSample: () => timeString(mockCustomSampleProps),
   })
@@ -885,6 +973,7 @@ describe('timestamp parser', () => {
   testReflection({
     parser: timestamp(),
     type: 'string',
+    schema: { type: 'string', format: 'date-time' },
     sampleValue: '2022-09-17 13:45:00',
     customSample: () => timestamp(mockCustomSampleProps),
   })
@@ -930,6 +1019,7 @@ describe('url parser', () => {
   testReflection({
     parser: url(),
     type: 'string',
+    schema: { type: 'string', format: 'uri' },
     sampleValue: 'https://www.example.net',
     randomSamples: [
       'https://www.example.net/users/1',
@@ -980,6 +1070,7 @@ describe('email parser', () => {
   testReflection({
     parser: email(),
     type: 'string',
+    schema: { type: 'string', format: 'email' },
     sampleValue: 'user@example.net',
     randomSamples: ['user-1@example.net', 'user-2@example.net'],
     customSample: () => email(mockCustomSampleProps),
@@ -998,6 +1089,7 @@ describe('literal parser', () => {
   testReflection({
     parser: literal('guest'),
     type: '"guest"',
+    schema: { const: 'guest' },
     sampleValue: 'guest',
     randomSamples: ['guest'],
     customSample: false,
@@ -1045,6 +1137,7 @@ describe('enums values parser', () => {
   testReflection({
     parser: values(['user', 'admin']),
     type: '"user" | "admin"',
+    schema: { enum: ['user', 'admin'] },
     sampleValue: 'user',
     customSample: () => values(['user', 'admin'], mockCustomSampleProps),
     skipInfer: true,
@@ -1078,6 +1171,7 @@ describe('nullable parser', () => {
   testReflection({
     parser: nullable(string()),
     type: 'null | string',
+    schema: { anyOf: [{ type: 'string' }, { type: 'null' }] },
     sampleValue: null,
     customSample: () => nullable(string(), mockCustomSampleProps),
     skipInfer: true,
@@ -1138,6 +1232,7 @@ describe('array parser', () => {
   testReflection({
     parser: array(float()),
     type: 'Array<number>',
+    schema: { type: 'array', items: { type: 'number' } },
     sampleValue: [float().sampleValue],
     customSample: () => array(float(), mockCustomSampleProps),
   })
@@ -1177,6 +1272,7 @@ describe('id parser', () => {
   testReflection({
     parser: id(),
     type: 'number',
+    schema: { type: 'integer', minimum: 1 },
     customSample: () => id(mockCustomSampleProps),
   })
 })
@@ -1261,7 +1357,7 @@ describe('or parser', () => {
         },
       },
     }
-    let error
+    let error: any
     try {
       parser.parse(data)
     } catch (e) {
@@ -1411,6 +1507,7 @@ describe('dict parser', () => {
 function testReflection<T>(options: {
   parser: Parser<T>
   type: string
+  schema?: JsonSchema
   sampleValue?: T
   randomSamples?: T[]
   customSample: (() => Parser<T>) | false
@@ -1420,6 +1517,11 @@ function testReflection<T>(options: {
   it('should have type', () => {
     expect(parser.type).to.equals(type)
   })
+  if (options.schema) {
+    it('should have schema', () => {
+      expect(parser.schema).to.deep.equals(options.schema)
+    })
+  }
   it('should have sampleValue', () => {
     expect(parser).to.haveOwnProperty('sampleValue')
     if ('sampleValue' in options) {
@@ -1583,6 +1685,192 @@ describe('inferFromSampleValue', () => {
     })
     let result = parser.parse({ a: { b: { c: 'a' } } })
     expect(result.a?.b?.c).to.equals('a')
+  })
+})
+
+describe('schema reflection', () => {
+  it('should expose schema via getParserSchema', () => {
+    let parser = string()
+    expect(getParserSchema(parser)).to.deep.equals(parser.schema)
+  })
+
+  it('should reflect string constraints in schema', () => {
+    expect(
+      string({ nonEmpty: true, minLength: 3, maxLength: 10, match: /^a/ }).schema,
+    ).to.deep.equals({
+      type: 'string',
+      minLength: 3,
+      maxLength: 10,
+      pattern: '^a',
+    })
+  })
+
+  it('should reflect number constraints in schema', () => {
+    expect(number({ min: 0, max: 100 }).schema).to.deep.equals({
+      type: 'number',
+      minimum: 0,
+      maximum: 100,
+    })
+    expect(int({ min: 1, max: 99 }).schema).to.deep.equals({
+      type: 'integer',
+      minimum: 1,
+      maximum: 99,
+    })
+  })
+
+  it('should reflect expected boolean value as const in schema', () => {
+    expect(boolean(true).schema).to.deep.equals({ const: true })
+    expect(boolean(false).schema).to.deep.equals({ const: false })
+  })
+
+  it('should reflect array length constraints in schema', () => {
+    expect(array(string(), { minLength: 1, maxLength: 5 }).schema).to.deep.equals({
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      maxItems: 5,
+    })
+  })
+
+  it('should reflect singletonArray as inner parser schema', () => {
+    expect(singletonArray(string()).schema).to.deep.equals({ type: 'string' })
+  })
+
+  it('should reflect union parser as anyOf in schema', () => {
+    expect(or([string(), number()]).schema).to.deep.equals({
+      anyOf: [{ type: 'string' }, { type: 'number' }],
+    })
+    expect(or([literal('a'), literal('b')]).schema).to.deep.equals({
+      anyOf: [{ const: 'a' }, { const: 'b' }],
+    })
+  })
+
+  it('should reflect intersection parser as allOf in schema', () => {
+    let idParser = object({ id: number() })
+    let nameParser = object({ name: string() })
+    expect(and<{ id: number; name: string }>([idParser, nameParser]).schema).to.deep.equals({
+      allOf: [
+        {
+          type: 'object',
+          properties: { id: { type: 'number' } },
+          required: ['id'],
+        },
+        {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      ],
+    })
+  })
+
+  it('should reflect dict parser with additionalProperties in schema', () => {
+    expect(dict({ key: string(), value: int() }).schema).to.deep.equals({
+      type: 'object',
+      additionalProperties: { type: 'integer' },
+    })
+  })
+
+  it('should reflect dict parser with enum key constraint in schema', () => {
+    const fieldNameParser = values(['create_time', 'update_time'])
+    const sortTypeParser = values(['asc', 'desc'])
+    expect(dict({ key: fieldNameParser, value: sortTypeParser }).schema).to.deep
+      .equals({
+        type: 'object',
+        additionalProperties: { enum: ['asc', 'desc'] },
+        propertyNames: { enum: ['create_time', 'update_time'] },
+      })
+  })
+
+  it('should reflect nullable complex type with anyOf in schema', () => {
+    expect(nullable(array(string())).schema).to.deep.equals({
+      anyOf: [
+        { type: 'array', items: { type: 'string' } },
+        { type: 'null' },
+      ],
+    })
+  })
+
+  it('should keep schema unchanged when wrapped with optional', () => {
+    let parser = string({ minLength: 3 })
+    let wrapped = optional(parser)
+    expect(wrapped.schema).to.deep.equals(parser.schema)
+  })
+
+  it('should infer schema from sample value with enums field', () => {
+    let parser = inferFromSampleValue({
+      username: 'alice',
+      role$enums: ['admin', 'staff'],
+    })
+    expect(parser.schema).to.deep.equals({
+      type: 'object',
+      properties: {
+        username: { type: 'string' },
+        role: { enum: ['admin', 'staff'] },
+      },
+      required: ['username', 'role'],
+    })
+  })
+
+  it('should infer schema from sample value with nullable field', () => {
+    let parser = inferFromSampleValue({
+      id: 1,
+      note$nullable: 'hello',
+    })
+    expect(parser.schema).to.deep.equals({
+      type: 'object',
+      properties: {
+        id: { type: 'integer' },
+        note: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+      },
+      required: ['id', 'note'],
+    })
+  })
+
+  it('should infer schema from sample value with optional field', () => {
+    let parser = inferFromSampleValue({
+      id: 1,
+      hidden$optional: true,
+    })
+    expect(parser.schema).to.deep.equals({
+      type: 'object',
+      properties: {
+        id: { type: 'integer' },
+        hidden: { type: 'boolean' },
+      },
+      required: ['id'],
+    })
+  })
+
+  it('should infer nested object schema from sample value', () => {
+    let parser = inferFromSampleValue({
+      user: {
+        id: 1,
+        profile: {
+          nickname: 'alice',
+        },
+      },
+    })
+    expect(parser.schema).to.deep.equals({
+      type: 'object',
+      properties: {
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            profile: {
+              type: 'object',
+              properties: {
+                nickname: { type: 'string' },
+              },
+              required: ['nickname'],
+            },
+          },
+          required: ['id', 'profile'],
+        },
+      },
+      required: ['user'],
+    })
   })
 })
 

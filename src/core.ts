@@ -2,9 +2,87 @@ export type ParseResult<T extends Parser<R>, R = unknown> = ReturnType<
   T['parse']
 >
 
+export type JsonSchemaValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | bigint
+  | symbol
+
+export type JsonStringSchema = {
+  type: 'string'
+  minLength?: number
+  maxLength?: number
+  pattern?: string
+  format?: string
+}
+
+export type JsonNumberSchema = {
+  type: 'number' | 'integer'
+  minimum?: number
+  maximum?: number
+}
+
+export type JsonBooleanSchema = {
+  type: 'boolean'
+}
+
+export type JsonNullSchema = {
+  type: 'null'
+}
+
+export type JsonArraySchema = {
+  type: 'array'
+  items?: JsonSchema
+  minItems?: number
+  maxItems?: number
+}
+
+export type JsonObjectSchema = {
+  type: 'object'
+  properties?: Record<string, JsonSchema>
+  required?: string[]
+  additionalProperties?: JsonSchema | boolean
+  propertyNames?: JsonSchema
+}
+
+export type JsonConstSchema = {
+  const: JsonSchemaValue
+}
+
+export type JsonEnumSchema = {
+  enum: JsonSchemaValue[]
+}
+
+export type JsonAnyOfSchema = {
+  anyOf: JsonSchema[]
+}
+
+export type JsonAllOfSchema = {
+  allOf: JsonSchema[]
+}
+
+export type JsonEmptySchema = Record<string, never>
+
+export type JsonSchema =
+  | JsonStringSchema
+  | JsonNumberSchema
+  | JsonBooleanSchema
+  | JsonNullSchema
+  | JsonArraySchema
+  | JsonObjectSchema
+  | JsonConstSchema
+  | JsonEnumSchema
+  | JsonAnyOfSchema
+  | JsonAllOfSchema
+  | JsonEmptySchema
+
 export type Parser<T> = {
   parse(input: unknown, context?: ParserContext): T
   type: string
+  schema: JsonSchema
   sampleValue: T
   randomSample: () => T
 }
@@ -213,6 +291,7 @@ export function string(
     parse,
     options,
     type: 'string',
+    schema: stringJsonSchema(options),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 'text',
@@ -223,12 +302,29 @@ export function string(
   }
 }
 
+function stringJsonSchema(options: StringOptions = {}): JsonSchema {
+  const schema: JsonSchema = { type: 'string' }
+  if (options.nonEmpty) {
+    schema.minLength = options.minLength ?? 1
+  } else if (options.minLength !== undefined) {
+    schema.minLength = options.minLength
+  }
+  if (options.maxLength !== undefined) schema.maxLength = options.maxLength
+  if (options.match) schema.pattern = options.match.source
+  return schema
+}
+
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 let urlRegex = /^(.+?):\/\/(.+?)(\/|$)/
 export type UrlOptions = StringOptions & {
   domain?: string
   protocol?: string
   protocols?: string[]
 }
+
 export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
@@ -287,12 +383,32 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     parse,
     options,
     type: 'string',
+    schema: urlJsonSchema(options),
     ...populateSampleProps({
       defaultProps: defaultUrlSampleProps,
       customProps: options,
     }),
   }
 }
+
+function urlJsonSchema(options: UrlOptions = {}): JsonSchema {
+  const schema = stringJsonSchema(options)
+  let pattern = 'pattern' in schema ? schema.pattern : undefined
+  if (options.protocol) pattern = `^${escapeRegex(options.protocol)}://`
+  if (options.protocols) {
+    pattern = `^(${options.protocols.map(escapeRegex).join('|')}):\\/\\/`
+  }
+  if (options.domain) {
+    const domainPattern = escapeRegex(options.domain)
+    pattern = pattern ? pattern + domainPattern : `^.+://${domainPattern}`
+  }
+  return {
+    ...schema,
+    format: 'uri',
+    ...(pattern !== undefined ? { pattern } : {}),
+  } as JsonSchema
+}
+
 const defaultUrlSampleProps: SampleProps<string> = {
   sampleValue: 'https://www.example.net',
   randomSample: () => 'https://www.example.net/users/' + randomId(),
@@ -303,6 +419,7 @@ export type EmailOptions = StringOptions & {
   domain?: string
   case?: 'lower' | 'upper' | 'unchanged' // default 'lower'
 }
+
 export function email(
   options: EmailOptions & CustomSampleOptions<string> = {},
 ) {
@@ -353,12 +470,28 @@ export function email(
     parse,
     options,
     type: 'string',
+    schema: emailJsonSchema(options),
     ...populateSampleProps({
       defaultProps: defaultEmailSampleProps,
       customProps: options,
     }),
   }
 }
+
+function emailJsonSchema(options: EmailOptions = {}): JsonSchema {
+  const schema = stringJsonSchema(options)
+  const pattern = options.domain
+    ? `.+@${escapeRegex(options.domain)}$`
+    : 'pattern' in schema
+      ? schema.pattern
+      : undefined
+  return {
+    ...schema,
+    format: 'email',
+    ...(pattern !== undefined ? { pattern } : {}),
+  } as JsonSchema
+}
+
 const defaultEmailSampleProps: SampleProps<string> = {
   sampleValue: 'user@example.net',
   randomSample: () => 'user-' + randomId() + '@example.net',
@@ -392,12 +525,18 @@ export function color(options?: CustomSampleOptions<string>) {
   return {
     parse,
     type: 'string',
+    schema: colorJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultColorSampleProps,
       customProps: options,
     }),
   }
 }
+
+function colorJsonSchema(): JsonSchema {
+  return { type: 'string', pattern: colorRegex.source }
+}
+
 const defaultColorSampleProps: SampleProps<string> = {
   sampleValue: '#c0ffee',
   randomSample: () =>
@@ -423,6 +562,7 @@ export type NumberOptions = {
    * */
   nearest?: boolean
 }
+
 export function number(
   options: NumberOptions & CustomSampleOptions<number> = {},
 ) {
@@ -496,6 +636,7 @@ export function number(
     parse,
     options,
     type: 'number',
+    schema: numberJsonSchema(options),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 3.14,
@@ -504,6 +645,16 @@ export function number(
       customProps: options,
     }),
   }
+}
+
+function numberJsonSchema(
+  options: NumberOptions = {},
+  integer = false,
+): JsonSchema {
+  const schema: JsonSchema = { type: integer ? 'integer' : 'number' }
+  if (options.min !== undefined) schema.minimum = options.min
+  if (options.max !== undefined) schema.maximum = options.max
+  return schema
 }
 
 /** @description parse `"3.5k"` into `3500` */
@@ -597,6 +748,7 @@ export function float(
     parse,
     options,
     type: 'number',
+    schema: numberJsonSchema(options),
     ...populateSampleProps({
       defaultProps: defaultFloatSampleProps,
       customProps: options,
@@ -631,6 +783,7 @@ export function int(options: NumberOptions & CustomSampleOptions<number> = {}) {
     parse,
     options,
     type: 'number',
+    schema: numberJsonSchema(options, true),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 42,
@@ -646,6 +799,42 @@ export type ObjectFieldParsers<T extends object> = {
 }
 /** @deprecated renamed to ObjectFieldParsers */
 export type ObjectOptions<T extends object> = ObjectFieldParsers<T>
+
+function schemaFromValue(value: unknown): JsonSchema {
+  if (value === null) return { type: 'null' }
+  if (Array.isArray(value)) return { type: 'array' }
+  if (value instanceof Date) return { type: 'string', format: 'date-time' }
+  switch (typeof value) {
+    case 'string':
+      return { type: 'string' }
+    case 'number':
+      return { type: 'number' }
+    case 'boolean':
+      return { type: 'boolean' }
+    case 'object':
+      return { type: 'object' }
+    default:
+      return {}
+  }
+}
+
+export function getParserSchema(parser: Partial<Parser<any>>): JsonSchema {
+  if (parser.schema) return parser.schema
+  if ('sampleValue' in parser) {
+    return schemaFromValue(parser.sampleValue)
+  }
+  if (parser.randomSample) {
+    return schemaFromValue(parser.randomSample())
+  }
+  return {}
+}
+
+export function getParserType(parser: Partial<Parser<any>>): string {
+  if (parser.type) return parser.type
+  if ('sampleValue' in parser) return typeof parser.sampleValue
+  if (parser.randomSample) return typeof parser.randomSample()
+  return 'unknown'
+}
 
 export function object<T extends object>(
   fieldParsers: ObjectFieldParsers<T> = {} as any,
@@ -741,6 +930,7 @@ export function object<T extends object>(
   }
 
   let type: string
+  let schema: JsonSchema
   function getType(): string {
     if (type) return type
 
@@ -770,11 +960,34 @@ export function object<T extends object>(
     return type
   }
 
+  function getSchema(): JsonSchema {
+    if (schema) return schema
+
+    const properties: Record<string, JsonSchema> = {}
+    const required: string[] = []
+    for (let key in fieldParsers) {
+      let name = toFieldName(key)
+      let valueParser = fieldParsers[key]
+      properties[name] = getParserSchema(valueParser)
+      if (!isOptional(valueParser)) {
+        required.push(name)
+      }
+    }
+    schema = { type: 'object', properties }
+    if (required.length > 0) {
+      schema.required = required
+    }
+    return schema
+  }
+
   return {
     parse,
     options: fieldParsers,
     get type() {
       return getType()
+    },
+    get schema() {
+      return getSchema()
     },
     ...populateSampleProps({
       defaultProps: {
@@ -794,6 +1007,10 @@ export function optional<T>(parser: Parser<T>): Parser<T | undefined> {
 
 function isOptional(parser: Parser<unknown>): boolean {
   return (parser as any).optional
+}
+
+function isSimpleType(type: string): boolean {
+  return !!type.match(/^\w+$/)
 }
 
 export function nullable<T>(
@@ -819,6 +1036,7 @@ export function nullable<T>(
     parse,
     parser,
     type,
+    schema: nullableJsonSchema(getParserSchema(parser)),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: null,
@@ -830,10 +1048,15 @@ export function nullable<T>(
   }
 }
 
+function nullableJsonSchema(schema: JsonSchema): JsonSchema {
+  return { anyOf: [schema, { type: 'null' }] }
+}
+
 export function boolean(expectedValue?: boolean) {
   if (expectedValue !== undefined) {
     expectedValue = !!expectedValue
   }
+
   function parse(input: unknown, context: ParserContext = {}): boolean {
     let expectedType =
       context.overrideType ||
@@ -858,10 +1081,19 @@ export function boolean(expectedValue?: boolean) {
     parse,
     expectedValue,
     type: 'boolean',
+    schema: booleanJsonSchema(expectedValue),
     sampleValue: true,
     randomSample: () => Math.random() < 0.5,
   }
 }
+
+function booleanJsonSchema(expectedValue?: boolean): JsonSchema {
+  if (typeof expectedValue === 'boolean') {
+    return { const: expectedValue }
+  }
+  return { type: 'boolean' }
+}
+
 function parseBooleanString(input: unknown): boolean {
   if (typeof input === 'string') {
     input = input.trim().toLowerCase()
@@ -917,6 +1149,7 @@ export function checkbox(options?: CustomSampleOptions<boolean>) {
     parse,
     checkbox: true,
     type: 'boolean',
+    schema: { type: 'boolean' } as const,
     ...populateSampleProps({
       defaultProps: {
         sampleValue: true,
@@ -935,6 +1168,7 @@ export type DateOptions = {
   min?: number | Date | string
   max?: number | Date | string
 }
+
 export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
   let min =
     options.min !== undefined
@@ -1003,12 +1237,18 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
     parse,
     options,
     type: 'Date',
+    schema: dateJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultDateSampleProps,
       customProps: options,
     }),
   }
 }
+
+function dateJsonSchema(): JsonSchema {
+  return { type: 'string', format: 'date-time' }
+}
+
 const defaultDateSampleProps: SampleProps<Date> = {
   sampleValue: new Date('2022-09-17'),
   randomSample: () => {
@@ -1061,6 +1301,7 @@ export type DateStringOptions = {
   min?: number | Date | string
   max?: number | Date | string
 }
+
 /**
  * @description parse date string in format 'yyyy-mm-dd' from Date | string | number
  */
@@ -1135,11 +1376,20 @@ export function dateString(
     parse,
     options,
     type: 'string',
+    schema: dateStringJsonSchema(options),
     ...populateSampleProps({
       defaultProps: defaultDateStringSampleProps,
       customProps: options,
     }),
   }
+}
+
+function dateStringJsonSchema(options: DateStringOptions = {}): JsonSchema {
+  return {
+    ...stringJsonSchema(options),
+    format: 'date',
+    pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+  } as JsonSchema
 }
 const defaultDateStringSampleProps: SampleProps<string> = {
   sampleValue: '2022-09-17',
@@ -1226,6 +1476,7 @@ export type TimeStringOptions = {
   /** @description default 'minute' */
   precision?: TimePrecision
 }
+
 /**
  * @description parse time string in format 'hh:mm' from Date | string
  */
@@ -1297,12 +1548,30 @@ export function timeString(
     parse,
     options,
     type: 'string',
+    schema: timeStringJsonSchema(options),
     ...populateSampleProps({
       defaultProps: defaultTimeStringSampleProps,
       customProps: options,
     }),
   }
 }
+
+function timeStringJsonSchema(options: TimeStringOptions = {}): JsonSchema {
+  const precision = options.precision || 'minute'
+  let pattern: string
+  if (precision === 'minute') {
+    pattern = '^\\d{2}:\\d{2}$'
+  } else if (precision === 'second') {
+    pattern = '^\\d{2}:\\d{2}:\\d{2}$'
+  } else {
+    pattern = '^\\d{2}:\\d{2}:\\d{2}\\.\\d{3}$'
+  }
+  return {
+    ...stringJsonSchema(options),
+    pattern,
+  } as JsonSchema
+}
+
 const defaultTimeStringSampleProps: SampleProps<string> = {
   sampleValue: '13:45',
   randomSample: () => {
@@ -1418,6 +1687,7 @@ export type TimestampOptions = {
   /** @description default 'second' */
   precision?: TimestampPrecision
 }
+
 /**
  * @description parse timestamp string in format 'yyyy-mm-dd hh:mm:ss' from Date | string
  */
@@ -1485,6 +1755,7 @@ export function timestamp(
     parse,
     options,
     type: 'string',
+    schema: timestampJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: toTimestampString(
@@ -1507,6 +1778,11 @@ export function timestamp(
     }),
   }
 }
+
+function timestampJsonSchema(): JsonSchema {
+  return { type: 'string', format: 'date-time' }
+}
+
 let parseTimestamp = timestamp().parse
 export function toTimestampString(
   date: Date,
@@ -1552,6 +1828,7 @@ export function literal<T extends Primitive>(value: T) {
     parse,
     value,
     type: JSON.stringify(value),
+    schema: { const: value },
     sampleValue: value,
     randomSample: () => value,
   }
@@ -1601,6 +1878,7 @@ export function values<T extends Primitive>(
     parse,
     values,
     type: values.map(value => JSON.stringify(value)).join(' | '),
+    schema: { enum: [...values] },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: values[0],
@@ -1619,6 +1897,7 @@ export type ArrayOptions = {
   maxLength?: number
   maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)
 }
+
 export function array<T>(
   parser: Parser<T>,
   options: ArrayOptions & CustomSampleOptions<T[]> = {},
@@ -1678,6 +1957,7 @@ export function array<T>(
     parser,
     options,
     type: `Array<${getParserType(parser)}>`,
+    schema: arrayJsonSchema(parser, options),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: [parser.sampleValue],
@@ -1688,6 +1968,19 @@ export function array<T>(
       customProps: options,
     }),
   }
+}
+
+function arrayJsonSchema<T>(
+  parser: Parser<T>,
+  options: ArrayOptions = {},
+): JsonSchema {
+  const schema: JsonSchema = {
+    type: 'array',
+    items: getParserSchema(parser),
+  }
+  if (options.minLength !== undefined) schema.minItems = options.minLength
+  if (options.maxLength !== undefined) schema.maxItems = options.maxLength
+  return schema
 }
 
 /** @description unwrap formidable field value from `T[]` to `T` */
@@ -1703,6 +1996,7 @@ export function singletonArray<T>(valueParser: Parser<T>): Parser<T> {
   return {
     parse,
     type: valueParser.type,
+    schema: getParserSchema(valueParser),
     sampleValue: valueParser.sampleValue,
     randomSample: valueParser.randomSample,
   }
@@ -1719,6 +2013,7 @@ export function id(options?: CustomSampleOptions<number>) {
   return {
     parse,
     type: 'number',
+    schema: numberJsonSchema({ min: 1 }, true),
     ...populateSampleProps({
       defaultProps: defaultIdSampleProps,
       customProps: options,
@@ -1786,6 +2081,7 @@ export function or<P extends Parser<any>>(
     parsers,
     options,
     type: unionType,
+    schema: { anyOf: parsers.map(getParserSchema) },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: parsers[0]!.sampleValue,
@@ -1877,6 +2173,7 @@ export function and<P extends object>(
     parsers,
     options,
     type: intersectionType,
+    schema: { allOf: parsers.map(getParserSchema) },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: parsers.reduce(
@@ -1910,6 +2207,7 @@ export function dict<K extends PropertyKey, V>(
   const keyParser =
     options.key || (string({ nonEmpty: false }) as Parser<any> as Parser<K>)
   const valueParser = options.value
+
   const keyType = getParserType(keyParser)
   const valueType = getParserType(valueParser)
   const recordType = `Record<${keyType},${valueType}>`
@@ -1939,6 +2237,7 @@ export function dict<K extends PropertyKey, V>(
     parse,
     options,
     type: recordType,
+    schema: dictJsonSchema(keyParser, valueParser),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: {} as Record<K, V>,
@@ -1956,6 +2255,21 @@ export function dict<K extends PropertyKey, V>(
       customProps: options,
     }),
   }
+}
+
+function dictJsonSchema<K extends PropertyKey, V>(
+  keyParser: Parser<K>,
+  valueParser: Parser<V>,
+): JsonSchema {
+  const schema: JsonSchema = {
+    type: 'object',
+    additionalProperties: getParserSchema(valueParser),
+  }
+  const keySchema = getParserSchema(keyParser)
+  if ('enum' in keySchema && keySchema.enum) {
+    schema.propertyNames = { enum: keySchema.enum }
+  }
+  return schema
 }
 
 /** @alias `dict` */
@@ -1996,17 +2310,6 @@ function concat(
     return a + ' ' + b
   }
   return a || b
-}
-
-export function getParserType(parser: Partial<Parser<any>>): string {
-  if (parser.type) return parser.type
-  if ('sampleValue' in parser) return typeof parser.sampleValue
-  if (parser.randomSample) return typeof parser.randomSample()
-  return 'unknown'
-}
-
-function isSimpleType(type: string): boolean {
-  return !!type.match(/^\w+$/)
 }
 
 type InferObjectWithOptionalField<T extends object> = keyof {
@@ -2142,12 +2445,13 @@ export function inferFromSampleValue<T>(value: T): Parser<InferType<T>> {
       }
       fieldParserEntries.push([field, parser])
     }
-    return object(
-      Object.fromEntries(fieldParserEntries) as ObjectFieldParsers<any>,
-      {
-        sampleValue: value,
-      },
-    ) as Parser<object> as Parser<InferType<T>>
+    let fieldParsers: ObjectFieldParsers<any> = {}
+    for (let [field, parser] of fieldParserEntries) {
+      fieldParsers[field] = parser
+    }
+    return object(fieldParsers, {
+      sampleValue: value,
+    }) as Parser<object> as Parser<InferType<T>>
   }
   throw new Error('unsupported sample value: ' + JSON.stringify(value))
 }
