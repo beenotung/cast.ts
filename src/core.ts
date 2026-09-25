@@ -364,26 +364,8 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     let domain = '[^/?#]+'
     let defaultPattern = '^' + protocol + '://' + domain
 
-    function escape(pattern: string): string {
-      return pattern
-        .replace(/\\/g, '\\\\')
-        .replace(/\^/g, '\\^')
-        .replace(/\$/g, '\\$')
-        .replace(/\./g, '\\.')
-        .replace(/\|/g, '\\|')
-        .replace(/\?/g, '\\?')
-        .replace(/\*/g, '\\*')
-        .replace(/\+/g, '\\+')
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)')
-        .replace(/\[/g, '\\[')
-        .replace(/\]/g, '\\]')
-        .replace(/\{/g, '\\{')
-        .replace(/\}/g, '\\}')
-    }
-
     if (typeof options.domain === 'string') {
-      domain = escape(options.domain)
+      domain = escapeRegexLiteral(options.domain)
     }
 
     let protocols: string[] = []
@@ -393,7 +375,7 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     if (Array.isArray(options.protocols)) {
       protocols.push(...options.protocols)
     }
-    protocols = [...new Set(protocols)].map(escape)
+    protocols = [...new Set(protocols)].map(escapeRegexLiteral)
     if (protocols.length === 1) {
       protocol = protocols[0]
     } else if (protocols.length > 1) {
@@ -2125,6 +2107,24 @@ function concat(
     return a + ' ' + b
   }
   return a || b
+}
+
+function escapeRegexLiteral(literal: string): string {
+  return literal
+    .replace(/\\/g, '\\\\')
+    .replace(/\^/g, '\\^')
+    .replace(/\$/g, '\\$')
+    .replace(/\./g, '\\.')
+    .replace(/\|/g, '\\|')
+    .replace(/\?/g, '\\?')
+    .replace(/\*/g, '\\*')
+    .replace(/\+/g, '\\+')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
 }
 
 export function getParserJsonSchema(parser: Partial<Parser<any>>): JsonSchema {
