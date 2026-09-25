@@ -251,8 +251,9 @@ export function string(
 
 let urlRegex = /^([^:]+):\/\/([^/?#]+)/
 export type UrlOptions = StringOptions & {
-  // TODO support port number
   domain?: string
+  port?: number | string
+  host?: string // host is domain + port number
   protocol?: string
   protocols?: string[]
 }
@@ -276,7 +277,8 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
       })
     }
     let protocol = match[1]
-    let domain = match[2]
+    let host = match[2]
+    let [domain, port] = host.split(':')
     if (
       Array.isArray(options.protocols) &&
       !options.protocols.includes(protocol)
@@ -299,6 +301,19 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
         reasonSuffix: context.reasonSuffix,
       })
     }
+    if (typeof options.host === 'string' && host !== options.host) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason:
+          'host should be ' +
+          JSON.stringify(options.host) +
+          ' got ' +
+          JSON.stringify(host),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     if (typeof options.domain === 'string' && domain !== options.domain) {
       throw new InvalidInputError({
         name: context.name,
@@ -309,6 +324,22 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
           JSON.stringify(options.domain) +
           ' got ' +
           JSON.stringify(domain),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    if (
+      (typeof options.port === 'number' || typeof options.port === 'string') &&
+      String(port) !== String(options.port)
+    ) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason:
+          'port should be ' +
+          JSON.stringify(options.port) +
+          ' got ' +
+          JSON.stringify(port),
         reasonSuffix: context.reasonSuffix,
       })
     }

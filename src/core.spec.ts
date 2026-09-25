@@ -972,6 +972,67 @@ describe('url parser', () => {
       url({ protocols: ['https', 'http'] }).parse('http://example.com'),
     ).to.equals('http://example.com')
   })
+  describe('domain parser', () => {
+    let parser = url({ domain: 'localhost' })
+    it('should allow any port number when domain match', () => {
+      expect(parser.parse('http://localhost:8080')).to.equals(
+        'http://localhost:8080',
+      )
+      expect(parser.parse('http://localhost:3000')).to.equals(
+        'http://localhost:3000',
+      )
+    })
+    it('should reject when domain mismatch', () => {
+      expect(() => parser.parse('http://example.com:8080')).to.throws(
+        'Invalid url, domain should be "localhost"',
+      )
+    })
+  })
+  describe('port parser', () => {
+    let parser = url({ port: 8080 })
+    it('should allow if port number is matched', () => {
+      expect(parser.parse('http://localhost:8080')).to.equals(
+        'http://localhost:8080',
+      )
+    })
+    it('should reject when port number is mismatch', () => {
+      expect(() => parser.parse('http://localhost:3000')).to.throws(
+        'Invalid url, port should be 8080',
+      )
+    })
+  })
+  describe('host parser with port', () => {
+    let parser = url({ host: 'localhost:8080' })
+    it('should allow if host is matched', () => {
+      expect(parser.parse('http://localhost:8080/profile')).to.equals(
+        'http://localhost:8080/profile',
+      )
+    })
+    it('should reject when host is mismatch', () => {
+      expect(() => parser.parse('http://example.com:8080/profile')).to.throws(
+        'Invalid url, host should be "localhost:8080"',
+      )
+    })
+  })
+  describe('host parser without port', () => {
+    let parser = url({ host: 'localhost' })
+    it('should allow if host is matched', () => {
+      expect(parser.parse('http://localhost/profile')).to.equals(
+        'http://localhost/profile',
+      )
+    })
+    it('should reject when host is mismatch', () => {
+      expect(() => parser.parse('http://example.com/profile')).to.throws(
+        'Invalid url, host should be "localhost"',
+      )
+    })
+  })
+  it('should reject when port number is not expected', () => {
+    let parser = url({ protocol: 'https', host: 'google.com' })
+    expect(() => parser.parse('https://google.com:8080/profile')).to.throws(
+      'Invalid url, host should be "google.com"',
+    )
+  })
   testReflection({
     parser: url(),
     type: 'string',
