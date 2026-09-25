@@ -513,13 +513,29 @@ type TimeStringOptions = {
 ```typescript
 // blogUrl is a string of hyperlink
 let blogUrl = url({ protocols: ['https', 'http'] }).parse(req.body.blogUrl)
+
+// hostname only (port on the URL may vary)
+url({ domain: 'localhost' }).parse('http://localhost:3000')
+
+// fixed port
+url({ port: 8080 }).parse('http://localhost:8080')
+
+// host segment after '://' (e.g. 'localhost' or 'localhost:8080')
+url({ host: 'localhost:8080' }).parse('http://localhost:8080/profile')
+
+// path, query, and hash are allowed after the host
+url({ protocol: 'https', domain: 'example.net' }).parse(
+  'https://example.net/search?query=value#results',
+)
 ```
 
 **Options of url parser**:
 
 ```typescript
 type UrlOptions = StringOptions & {
-  domain?: string
+  domain?: string // hostname only (e.g. 'example.net')
+  port?: number | string
+  host?: string // hostname, or 'hostname:port'
   protocol?: string
   protocols?: string[]
 }
