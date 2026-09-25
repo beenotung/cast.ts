@@ -460,10 +460,21 @@ export function email(
     }
     return email
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { ...getParserJsonSchema(parser) }
+    schema.format = 'email'
+
+    if (typeof options.domain === 'string') {
+      schema.pattern = '^[^@]+@' + escapeRegexLiteral(options.domain) + '$'
+    }
+
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultEmailSampleProps,
       customProps: options,

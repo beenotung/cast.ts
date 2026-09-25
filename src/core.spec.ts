@@ -1185,6 +1185,33 @@ describe('email parser', () => {
     randomSamples: ['user-1@example.net', 'user-2@example.net'],
     customSample: () => email(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic email',
+      parser: email(),
+      jsonSchema: { type: 'string', format: 'email' },
+      validSampleValues: ['user@example.net', 'alice@example.org'],
+      invalidSampleValues: [null, '', 'not-an-email', 'user@example'],
+    },
+    {
+      title: 'email with fixed domain',
+      parser: email({ domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'email',
+        pattern: '^[^@]+@example\\.net$',
+      },
+      validSampleValues: ['user@example.net', 'alice@example.net'],
+      invalidSampleValues: ['user@example.com', 'user@example.net.evil.com'],
+    },
+    {
+      title: 'non-empty email',
+      parser: email({ nonEmpty: true }),
+      jsonSchema: { type: 'string', format: 'email', minLength: 1 },
+      validSampleValues: ['user@example.net'],
+      invalidSampleValues: [''],
+    },
+  ])
 })
 
 describe('literal parser', () => {
