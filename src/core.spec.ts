@@ -1858,7 +1858,6 @@ function testJsonSchema<T>(
           for (let value of invalidSampleValues) {
             let result = validate(value)
             expect(result, `invalid sampleValue: ${inspect(value)}`).to.be.false
-              .false
           }
         })
       })
