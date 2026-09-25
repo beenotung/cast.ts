@@ -1027,6 +1027,34 @@ describe('url parser', () => {
       )
     })
   })
+  describe('origin parser', () => {
+    let parser = url({ origin: 'https://example.net' })
+    it('should allow if origin is matched', () => {
+      expect(parser.parse('https://example.net/profile')).to.equals(
+        'https://example.net/profile',
+      )
+    })
+    it('should reject when protocol is mismatch', () => {
+      expect(() => parser.parse('http://example.net/profile')).to.throws(
+        'Invalid url, origin should be "https://example.net"',
+      )
+    })
+    it('should reject when domain is mismatch', () => {
+      expect(() => parser.parse('https://example.com/profile')).to.throws(
+        'Invalid url, origin should be "https://example.net"',
+      )
+    })
+    it('should reject when port is mismatch', () => {
+      expect(() => parser.parse('https://example.net:8080/profile')).to.throws(
+        'Invalid url, origin should be "https://example.net"',
+      )
+    })
+    it('should reject when extra port is provided', () => {
+      expect(() => parser.parse('https://example.net:8080/profile')).to.throws(
+        'Invalid url, origin should be "https://example.net"',
+      )
+    })
+  })
   it('should reject when port number is not expected', () => {
     let parser = url({ protocol: 'https', host: 'google.com' })
     expect(() => parser.parse('https://google.com:8080/profile')).to.throws(

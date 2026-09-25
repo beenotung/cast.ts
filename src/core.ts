@@ -256,6 +256,7 @@ export type UrlOptions = StringOptions & {
   host?: string // host is domain + port number
   protocol?: string
   protocols?: string[]
+  origin?: string // protocol + domain + port
 }
 export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
   let parser = string(options)
@@ -276,9 +277,19 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
         reasonSuffix: context.reasonSuffix,
       })
     }
+    let origin = match[0]
     let protocol = match[1]
     let host = match[2]
     let [domain, port] = host.split(':')
+    if (typeof options.origin === 'string' && origin !== options.origin) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'origin should be ' + JSON.stringify(options.origin),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     if (
       Array.isArray(options.protocols) &&
       !options.protocols.includes(protocol)

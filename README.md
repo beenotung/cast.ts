@@ -523,6 +523,9 @@ url({ port: 8080 }).parse('http://localhost:8080')
 // host segment after '://' (e.g. 'localhost' or 'localhost:8080')
 url({ host: 'localhost:8080' }).parse('http://localhost:8080/profile')
 
+// scheme + host (like URL.origin); path, query, and hash may follow
+url({ origin: 'https://example.net' }).parse('https://example.net/profile')
+
 // path, query, and hash are allowed after the host
 url({ protocol: 'https', domain: 'example.net' }).parse(
   'https://example.net/search?query=value#results',
@@ -536,6 +539,7 @@ type UrlOptions = StringOptions & {
   domain?: string // hostname only (e.g. 'example.net')
   port?: number | string
   host?: string // hostname, or 'hostname:port'
+  origin?: string // e.g. 'https://example.net' or 'https://localhost:8080'
   protocol?: string
   protocols?: string[]
 }
