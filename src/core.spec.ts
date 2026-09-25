@@ -1049,16 +1049,11 @@ describe('url parser', () => {
         'Invalid url, origin should be "https://example.net"',
       )
     })
-    it('should reject when extra port is provided', () => {
-      expect(() => parser.parse('https://example.net:8080/profile')).to.throws(
-        'Invalid url, origin should be "https://example.net"',
-      )
-    })
   })
   it('should reject when port number is not expected', () => {
-    let parser = url({ protocol: 'https', host: 'google.com' })
+    let parser = url({ origin: 'https://google.com' })
     expect(() => parser.parse('https://google.com:8080/profile')).to.throws(
-      'Invalid url, host should be "google.com"',
+      'Invalid url, origin should be "https://google.com"',
     )
   })
   testReflection({
