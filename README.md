@@ -550,7 +550,7 @@ type UrlOptions = StringOptions & {
 let userEmail = email().parse(req.body.email)
 ```
 
-**Options of url parser**:
+**Options of email parser**:
 
 ```typescript
 type EmailOptions = StringOptions & {
