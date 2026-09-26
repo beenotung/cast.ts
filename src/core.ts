@@ -257,6 +257,7 @@ export type UrlOptions = StringOptions & {
   protocol?: string
   protocols?: string[]
   origin?: string // protocol + domain + port
+  // TODO support IPv6 host / origin; out of scope for now
 }
 export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
   let parser = string(options)
@@ -280,6 +281,7 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     let origin = match[0]
     let protocol = match[1]
     let host = match[2]
+    // TODO support IPv6 host (e.g. '[::1]:3000'); out of scope for now
     let [domain, port] = host.split(':')
     if (typeof options.origin === 'string' && origin !== options.origin) {
       throw new InvalidInputError({
