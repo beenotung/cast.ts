@@ -1887,6 +1887,16 @@ function testJsonSchema<T>(
             expect(result, `invalid sampleValue: ${inspect(value)}`).to.be.false
           }
         })
+        it('should agree with parse() on valid sampleValues', () => {
+          // guards against the schema drifting from the parser's own rules:
+          // every value the schema accepts must also be accepted by parse()
+          for (let value of validSampleValues) {
+            expect(
+              () => parser.parse(value),
+              `parser should accept valid sampleValue: ${inspect(value)}`,
+            ).to.not.throw()
+          }
+        })
       })
     }
   })
