@@ -414,15 +414,12 @@ const defaultUrlSampleProps: SampleProps<string> = {
 let emailRegex = /^.+?@(.+)$/
 export type EmailOptions = StringOptions & {
   domain?: string
-  case?: 'lower' | 'upper' | 'unchanged' // default 'lower'
+  case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
 }
 export function email(
   options: EmailOptions & CustomSampleOptions<string> = {},
 ) {
-  let parser = string({
-    ...options,
-    case: options.case || 'lower',
-  })
+  let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''
     let expectedType = context.overrideType || 'email'

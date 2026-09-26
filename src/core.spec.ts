@@ -1056,6 +1056,28 @@ describe('url parser', () => {
       'Invalid url, origin should be "https://google.com"',
     )
   })
+  it('should keep the case unchanged by default', () => {
+    expect(url().parse('HTTPS://Example.COM/Path/To')).to.equals(
+      'HTTPS://Example.COM/Path/To',
+    )
+  })
+  it('should apply the case option to the whole url when specified', () => {
+    expect(
+      url({ case: 'lower' }).parse('HTTPS://Example.COM/Path/To'),
+    ).to.equals('https://example.com/path/to')
+    expect(
+      url({ case: 'upper' }).parse('https://example.com/Path/To'),
+    ).to.equals('HTTPS://EXAMPLE.COM/PATH/TO')
+  })
+  it('should match the supplied option value exactly', () => {
+    // the option value is authoritative; no case folding on either side
+    expect(
+      url({ origin: 'https://google.com' }).parse('https://google.com'),
+    ).to.equals('https://google.com')
+    expect(() =>
+      url({ origin: 'https://google.com' }).parse('HttPs://Google.Com'),
+    ).to.throws('Invalid url, origin should be "https://google.com"')
+  })
   testReflection({
     parser: url(),
     type: 'string',
@@ -1176,6 +1198,19 @@ describe('email parser', () => {
   it('should normalize to lower case', () => {
     expect(email({ case: 'lower' }).parse('Alice@example.net')).to.equals(
       'alice@example.net',
+    )
+  })
+  it('should keep the case unchanged by default', () => {
+    expect(email().parse('Alice.Smith@Example.NET')).to.equals(
+      'Alice.Smith@Example.NET',
+    )
+  })
+  it('should apply the case option to the whole address', () => {
+    expect(email({ case: 'lower' }).parse('Alice.Smith@Example.NET')).to.equals(
+      'alice.smith@example.net',
+    )
+    expect(email({ case: 'upper' }).parse('user@example.net')).to.equals(
+      'USER@EXAMPLE.NET',
     )
   })
   testReflection({

@@ -554,9 +554,14 @@ let userEmail = email().parse(req.body.email)
 ```typescript
 type EmailOptions = StringOptions & {
   domain?: string
-  case?: 'lower' | 'upper' | 'unchanged' // default 'lower'
+  case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
 }
 ```
+
+> The address is kept as submitted unless `case` is set, so the local part is
+> not folded: RFC 5321 section 2.3.4.1 treats it as case-sensitive, although
+> most providers match it case-insensitively in practice. Use `case: 'lower'`
+> if you need a normalized value for identity matching.
 
 ## Literal
 
