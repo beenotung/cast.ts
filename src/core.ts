@@ -382,17 +382,13 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     if (allowedProtocols.length > 0) {
       let protocols = allowedProtocols.map(escapeRegexLiteral)
       protocol =
-        protocols.length === 1
-          ? protocols[0]
-          : '(' + protocols.join('|') + ')'
+        protocols.length === 1 ? protocols[0] : '(' + protocols.join('|') + ')'
       constrained = true
     }
 
     // `origin` is protocol + host, so it subsumes the other host constraints
     let originMatch =
-      typeof options.origin === 'string'
-        ? options.origin.match(urlRegex)
-        : null
+      typeof options.origin === 'string' ? options.origin.match(urlRegex) : null
     if (originMatch) {
       protocol = escapeRegexLiteral(originMatch[1])
       host = escapeRegexLiteral(originMatch[2])
@@ -405,7 +401,10 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
       needsBoundary = true
     } else if (typeof options.domain === 'string') {
       host = escapeRegexLiteral(options.domain)
-      if (typeof options.port === 'number' || typeof options.port === 'string') {
+      if (
+        typeof options.port === 'number' ||
+        typeof options.port === 'string'
+      ) {
         host += ':' + escapeRegexLiteral(String(options.port))
       } else {
         // parse() accepts any port when only the domain is pinned
