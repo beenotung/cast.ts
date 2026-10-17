@@ -12,6 +12,8 @@ export type Parser<T> = {
 
 export type JsonSchema = {
   type: string
+  minimum?: number
+  maximum?: number
   minLength?: number
   maxLength?: number
   pattern?: string // regex string
@@ -650,10 +652,21 @@ export function number(
     }
     return input
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'number' }
+    if (typeof options.min === 'number') {
+      schema.minimum = options.min
+    }
+    if (typeof options.max === 'number') {
+      schema.maximum = options.max
+    }
+    return schema
+  }
   return {
     parse,
     options,
     type: 'number',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 3.14,

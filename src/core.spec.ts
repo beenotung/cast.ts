@@ -221,6 +221,43 @@ describe('number parser', () => {
     sampleValue: 3.14,
     customSample: () => number(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic number',
+      parser: number(),
+      jsonSchema: { type: 'number' },
+      validSampleValues: [0, 1, 2, 3.14, -42],
+      invalidSampleValues: [null, NaN, ''],
+    },
+    {
+      title: 'number with min value',
+      parser: number({ min: 10 }),
+      jsonSchema: { type: 'number', minimum: 10 },
+      validSampleValues: [10, 11],
+      invalidSampleValues: [9],
+    },
+    {
+      title: 'number with max value',
+      parser: number({ max: 100 }),
+      jsonSchema: { type: 'number', maximum: 100 },
+      validSampleValues: [99, 100],
+      invalidSampleValues: [101],
+    },
+    {
+      title: 'number within range',
+      parser: number({ min: 10, max: 100 }),
+      jsonSchema: { type: 'number', minimum: 10, maximum: 100 },
+      validSampleValues: [10, 11, 99, 100],
+      invalidSampleValues: [9, 101],
+    },
+    {
+      title: 'number with zero bound',
+      parser: number({ min: 0, max: 0 }),
+      jsonSchema: { type: 'number', minimum: 0, maximum: 0 },
+      validSampleValues: [0],
+      invalidSampleValues: [-1, 1],
+    },
+  ])
 })
 
 describe('int parser', () => {
