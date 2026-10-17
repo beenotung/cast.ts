@@ -1130,7 +1130,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
-        pattern: '^[^:]+://example\\.net(?:$|[/?#])',
+        pattern: '^[^:]+://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
       },
       validSampleValues: [
         'https://example.net',
@@ -1148,7 +1148,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
-        pattern: '^https://example\\.net(?:$|[/?#])',
+        pattern: '^https://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
       },
       validSampleValues: [
         'https://example.net',
@@ -1158,6 +1158,88 @@ describe('url parser', () => {
         'http://example.net',
         'https://example.net.evil.com',
       ],
+    },
+    {
+      title: 'url with fixed port',
+      parser: url({ port: 8080 }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^[^:]+://[^:/?#]+:8080(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'http://localhost:8080',
+        'https://example.net:8080/path',
+      ],
+      invalidSampleValues: [
+        'http://localhost:9090',
+        'http://localhost',
+        'http://localhost:8080.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed domain and port',
+      parser: url({ domain: 'example.net', port: 8080 }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^[^:]+://example\\.net:8080(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net:8080',
+        'http://example.net:8080/x',
+      ],
+      invalidSampleValues: [
+        'https://example.net:9090',
+        'https://example.net',
+        'https://example.net.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed host',
+      parser: url({ host: 'example.net:8080' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^[^:]+://example\\.net:8080(?:$|[/?#])',
+      },
+      validSampleValues: ['https://example.net:8080'],
+      invalidSampleValues: [
+        'https://example.net:9090',
+        'https://example.net:8080.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed origin',
+      parser: url({ origin: 'https://example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^https://example\\.net(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net',
+        'https://example.net/path?query=value#hash',
+      ],
+      invalidSampleValues: [
+        'http://example.net',
+        'https://example.net:8080',
+        'https://example.net.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed domain allows any port',
+      parser: url({ domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^[^:]+://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net:8080',
+        'https://example.net:1/x',
+      ],
+      invalidSampleValues: ['https://example.net.evil.com'],
     },
   ])
 })

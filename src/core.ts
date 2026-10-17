@@ -363,34 +363,72 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
     schema.format = 'uri'
 
     let protocol = '[^:]+'
-    let domain = '[^/?#]+'
-    let defaultPattern = '^' + protocol + '://' + domain
+    let host = '[^/?#]+'
+    // an exact host/domain/origin needs an explicit boundary so 'example.com'
+    // does not also match 'example.com.evil.com'
+    let boundary = '(?:$|[/?#])'
+    let constrained = false
+    let needsBoundary = false
 
-    if (typeof options.domain === 'string') {
-      domain = escapeRegexLiteral(options.domain)
+    // `protocol` and `protocols` are alternative ways to constrain the scheme;
+    // using both is not supported (parse() would AND them, this unions them)
+    let allowedProtocols = [
+      ...new Set(
+        [options.protocol, ...(options.protocols ?? [])].filter(
+          (value): value is string => typeof value === 'string',
+        ),
+      ),
+    ]
+    if (allowedProtocols.length > 0) {
+      let protocols = allowedProtocols.map(escapeRegexLiteral)
+      protocol =
+        protocols.length === 1
+          ? protocols[0]
+          : '(' + protocols.join('|') + ')'
+      constrained = true
     }
 
-    let protocols: string[] = []
-    if (typeof options.protocol === 'string') {
-      protocols.push(options.protocol)
-    }
-    if (Array.isArray(options.protocols)) {
-      protocols.push(...options.protocols)
-    }
-    protocols = [...new Set(protocols)].map(escapeRegexLiteral)
-    if (protocols.length === 1) {
-      protocol = protocols[0]
-    } else if (protocols.length > 1) {
-      protocol = '(' + protocols.join('|') + ')'
+    // `origin` is protocol + host, so it subsumes the other host constraints
+    let originMatch =
+      typeof options.origin === 'string'
+        ? options.origin.match(urlRegex)
+        : null
+    if (originMatch) {
+      protocol = escapeRegexLiteral(originMatch[1])
+      host = escapeRegexLiteral(originMatch[2])
+      constrained = true
+      needsBoundary = true
+    } else if (typeof options.host === 'string') {
+      // host is 'domain' or 'domain:port'
+      host = escapeRegexLiteral(options.host)
+      constrained = true
+      needsBoundary = true
+    } else if (typeof options.domain === 'string') {
+      host = escapeRegexLiteral(options.domain)
+      if (typeof options.port === 'number' || typeof options.port === 'string') {
+        host += ':' + escapeRegexLiteral(String(options.port))
+      } else {
+        // parse() accepts any port when only the domain is pinned
+        host += '(?::[^/?#]*)?'
+      }
+      constrained = true
+      needsBoundary = true
+    } else if (
+      typeof options.port === 'number' ||
+      typeof options.port === 'string'
+    ) {
+      host = '[^:/?#]+:' + escapeRegexLiteral(String(options.port))
+      constrained = true
+      // the port literal must be complete, so 'example.com:8080' does not
+      // also accept 'example.com:8080.evil.com'
+      needsBoundary = true
     }
 
-    let pattern = '^' + protocol + '://' + domain
-    if (typeof options.domain === 'string') {
-      pattern += '(?:$|[/?#])'
-    }
-
-    if (pattern !== defaultPattern) {
-      schema.pattern = pattern
+    if (constrained) {
+      schema.pattern = '^' + protocol + '://' + host
+      if (needsBoundary) {
+        schema.pattern += boundary
+      }
     }
 
     return schema
