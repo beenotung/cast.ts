@@ -768,6 +768,9 @@ export function float(
     parse,
     options,
     type: 'number',
+    // rounding options (toFixed/toPrecision) affect the parsed value, not the
+    // JSON shape, so the schema is the underlying number schema
+    jsonSchema: parser.jsonSchema,
     ...populateSampleProps({
       defaultProps: defaultFloatSampleProps,
       customProps: options,

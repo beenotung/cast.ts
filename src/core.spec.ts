@@ -319,6 +319,29 @@ describe('float parser', () => {
     sampleValue: 3.14,
     customSample: () => float(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic float',
+      parser: float(),
+      jsonSchema: { type: 'number' },
+      validSampleValues: [0, 3.14, -4.2],
+      invalidSampleValues: [null, NaN, ''],
+    },
+    {
+      title: 'float within range',
+      parser: float({ min: 0, max: 1 }),
+      jsonSchema: { type: 'number', minimum: 0, maximum: 1 },
+      validSampleValues: [0, 0.5, 1],
+      invalidSampleValues: [-0.1, 1.1],
+    },
+    {
+      title: 'float with rounding options',
+      parser: float({ toFixed: 2 }),
+      jsonSchema: { type: 'number' },
+      validSampleValues: [3.1415, -4.2],
+      invalidSampleValues: [null, NaN, ''],
+    },
+  ])
 })
 
 describe('boolean parser', () => {
