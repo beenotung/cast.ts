@@ -1894,13 +1894,16 @@ export function singletonArray<T>(valueParser: Parser<T>): Parser<T> {
  * @description for parsing database auto-increment primary key
  */
 export function id(options?: CustomSampleOptions<number>) {
-  let parseInt = int({ min: 1 }).parse
+  let intParser = int({ min: 1 })
+  let parseInt = intParser.parse
   function parse(input: unknown, context: ParserContext = {}): number {
     return parseInt(input, { ...context, overrideType: 'id' })
   }
   return {
     parse,
     type: 'number',
+    // an id is a positive integer
+    jsonSchema: intParser.jsonSchema,
     ...populateSampleProps({
       defaultProps: defaultIdSampleProps,
       customProps: options,

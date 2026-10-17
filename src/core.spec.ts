@@ -1600,6 +1600,15 @@ describe('id parser', () => {
     type: 'number',
     customSample: () => id(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'id',
+      parser: id(),
+      jsonSchema: { type: 'integer', minimum: 1 },
+      validSampleValues: [1, 2, 42],
+      invalidSampleValues: [0, -1, 1.5, null, NaN],
+    },
+  ])
 })
 
 describe('or parser', () => {
