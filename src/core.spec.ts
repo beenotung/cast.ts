@@ -284,6 +284,22 @@ describe('int parser', () => {
     sampleValue: 42,
     customSample: () => int(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic int',
+      parser: int(),
+      jsonSchema: { type: 'integer' },
+      validSampleValues: [0, 1, -42, 100],
+      invalidSampleValues: [null, NaN, 4.2, ''],
+    },
+    {
+      title: 'int within range',
+      parser: int({ min: 0, max: 100 }),
+      jsonSchema: { type: 'integer', minimum: 0, maximum: 100 },
+      validSampleValues: [0, 50, 100],
+      invalidSampleValues: [-1, 101, 0.5],
+    },
+  ])
 })
 
 describe('float parser', () => {

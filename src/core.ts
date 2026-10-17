@@ -780,7 +780,8 @@ const defaultFloatSampleProps: SampleProps<number> = {
 }
 
 export function int(options: NumberOptions & CustomSampleOptions<number> = {}) {
-  let parseNumber = number(options).parse
+  let numberParser = number(options)
+  let parseNumber = numberParser.parse
   function parse(input: unknown, context: ParserContext = {}): number {
     let expectedType = context.overrideType || 'int'
     let value = parseNumber(input, {
@@ -798,10 +799,17 @@ export function int(options: NumberOptions & CustomSampleOptions<number> = {}) {
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    // reuse the numeric bounds, but constrain to whole numbers
+    let schema: JsonSchema = { ...getParserJsonSchema(numberParser) }
+    schema.type = 'integer'
+    return schema
+  }
   return {
     parse,
     options,
     type: 'number',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 42,
