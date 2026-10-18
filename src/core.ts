@@ -2156,6 +2156,12 @@ export function or<P extends Parser<any>>(
     parsers,
     options,
     type: unionType,
+    // computed lazily: a member parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return {
+        anyOf: parsers.map(getParserJsonSchema),
+      }
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: parsers[0]!.sampleValue,

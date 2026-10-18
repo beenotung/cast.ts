@@ -2151,6 +2151,31 @@ describe('or parser', () => {
     expect(or([string(), number()]).parse(42)).to.equals('42')
     expect(or([number(), string()]).parse('42')).to.equals(42)
   })
+  testJsonSchema([
+    {
+      title: 'union of string and number',
+      parser: or([string(), number()]),
+      jsonSchema: { anyOf: [{ type: 'string' }, { type: 'number' }] },
+      validSampleValues: ['text', 42],
+      invalidSampleValues: [null, true, []],
+    },
+    {
+      title: 'union of object and string',
+      parser: or([object({ name: string() }), string()]),
+      jsonSchema: {
+        anyOf: [
+          {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+          { type: 'string' },
+        ],
+      },
+      validSampleValues: [{ name: 'alice' }, 'text'],
+      invalidSampleValues: [{}, { name: 1 }, 1],
+    },
+  ])
 })
 
 describe('and parser', () => {
