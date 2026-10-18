@@ -29,6 +29,8 @@ export type JsonSchema = AtLeastOneOf<{
   format?: string // e.g. 'uri'
   properties?: Record<string, JsonSchema>
   required?: string[]
+  propertyNames?: JsonSchema
+  additionalProperties?: boolean | JsonSchema
   items?: JsonSchema
   minItems?: number
   maxItems?: number
@@ -2322,6 +2324,22 @@ export function dict<K extends PropertyKey, V>(
     parse,
     options,
     type: recordType,
+    // computed lazily: the value parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      let schema: JsonSchema = {
+        type: 'object',
+        additionalProperties: getParserJsonSchema(valueParser),
+      }
+      if (keyType === 'number') {
+        // JSON object keys are strings, so a numeric key parser can only be
+        // approximated: this matches plain and decimal numbers, not exponents
+        schema.propertyNames = {
+          type: 'string',
+          pattern: '^-?\\d+(?:\\.\\d+)?$',
+        }
+      }
+      return schema
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: {} as Record<K, V>,

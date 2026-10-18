@@ -2330,6 +2330,30 @@ describe('dict parser', () => {
   it('should alias to record', () => {
     expect(dict).to.equals(record)
   })
+  testJsonSchema([
+    {
+      title: 'dict of strings',
+      parser: dict({ value: string() }),
+      jsonSchema: {
+        type: 'object',
+        additionalProperties: { type: 'string' },
+      },
+      validSampleValues: [{}, { a: 'alice', b: 'bob' }],
+      invalidSampleValues: [{ a: 1 }, [], null],
+    },
+    {
+      title: 'dict of numbers with int keys',
+      parser: dict({ key: int(), value: number() }),
+      jsonSchema: {
+        type: 'object',
+        additionalProperties: { type: 'number' },
+        // keys are strings in JSON, so the numeric key parser is approximated
+        propertyNames: { type: 'string', pattern: '^-?\\d+(?:\\.\\d+)?$' },
+      },
+      validSampleValues: [{ '1': 1 }, { '1': 1, '2': 2.5 }],
+      invalidSampleValues: [{ '1': 'text' }, { a: 1 }],
+    },
+  ])
 })
 
 function testReflection<T>(options: {
