@@ -411,6 +411,29 @@ describe('boolean parser', () => {
     randomSamples: [true, false],
     customSample: false,
   })
+  testJsonSchema([
+    {
+      title: 'boolean',
+      parser: boolean(),
+      jsonSchema: { type: 'boolean' },
+      validSampleValues: [true, false],
+      invalidSampleValues: [null, '', 'true', 0, 1],
+    },
+    {
+      title: 'boolean expecting true',
+      parser: boolean(true),
+      jsonSchema: { type: 'boolean', const: true },
+      validSampleValues: [true],
+      invalidSampleValues: [false],
+    },
+    {
+      title: 'boolean expecting false',
+      parser: boolean(false),
+      jsonSchema: { type: 'boolean', const: false },
+      validSampleValues: [false],
+      invalidSampleValues: [true],
+    },
+  ])
 })
 
 describe('checkbox parser', () => {

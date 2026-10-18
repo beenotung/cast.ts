@@ -12,6 +12,7 @@ export type Parser<T> = {
 
 export type JsonSchema = {
   type: string
+  const?: Primitive
   minimum?: number
   maximum?: number
   minLength?: number
@@ -1036,10 +1037,18 @@ export function boolean(expectedValue?: boolean) {
     }
     return value
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'boolean' }
+    if (typeof expectedValue === 'boolean') {
+      schema.const = expectedValue
+    }
+    return schema
+  }
   return {
     parse,
     expectedValue,
     type: 'boolean',
+    jsonSchema: getJsonSchema(),
     sampleValue: true,
     randomSample: () => Math.random() < 0.5,
   }
