@@ -1133,6 +1133,49 @@ describe('timeString parser', () => {
     sampleValue: '13:45',
     customSample: () => timeString(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'time string in minute precision',
+      parser: timeString(),
+      jsonSchema: {
+        type: 'string',
+        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d$',
+      },
+      validSampleValues: ['13:45', '9:05'],
+      invalidSampleValues: ['24:00', '13:60', '13:45:00'],
+    },
+    {
+      title: 'time string in second precision',
+      parser: timeString({ precision: 'second' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d$',
+      },
+      validSampleValues: ['13:45:00', '9:05:07'],
+      invalidSampleValues: ['13:45', '13:45:60', '24:00:00'],
+    },
+    {
+      title: 'time string in millisecond precision',
+      parser: timeString({ precision: 'millisecond' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{1,3}$',
+      },
+      validSampleValues: ['13:45:00.123', '13:45:00.5'],
+      invalidSampleValues: ['13:45:00', '25:00:00.000', '13:45:60.000'],
+    },
+    {
+      title: 'non-empty time string',
+      parser: timeString({ nonEmpty: true }),
+      jsonSchema: {
+        type: 'string',
+        minLength: 1,
+        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d$',
+      },
+      validSampleValues: ['13:45'],
+      invalidSampleValues: [''],
+    },
+  ])
 })
 
 describe('timestamp parser', () => {

@@ -1510,6 +1510,14 @@ export type TimeStringOptions = {
   /** @description default 'minute' */
   precision?: TimePrecision
 }
+const timePatternByPrecision: Record<TimePrecision, string> = {
+  // e.g. "13:45" or "9:05"
+  minute: '(?:[01]?\\d|2[0-3]):[0-5]\\d',
+  // e.g. "13:45:00"
+  second: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d',
+  // e.g. "13:45:00.000" (1-3 digits, padded by parse)
+  millisecond: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{1,3}',
+}
 /**
  * @description parse time string in format 'hh:mm' from Date | string
  */
@@ -1577,10 +1585,20 @@ export function timeString(
     }
     return timeString
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'string' }
+    if (options.nonEmpty) {
+      schema.minLength = 1
+    }
+    schema.pattern =
+      '^' + timePatternByPrecision[options.precision || 'minute'] + '$'
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultTimeStringSampleProps,
       customProps: options,
