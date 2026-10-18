@@ -1106,10 +1106,14 @@ export function checkbox(options?: CustomSampleOptions<boolean>) {
         })
     }
   }
+  function getJsonSchema(): JsonSchema {
+    return { type: 'boolean' }
+  }
   return {
     parse,
     checkbox: true,
     type: 'boolean',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: true,

@@ -459,6 +459,15 @@ describe('checkbox parser', () => {
     expect(checkbox().parse(true)).to.equals(true)
     expect(checkbox().parse(false)).to.equals(false)
   })
+  testJsonSchema([
+    {
+      title: 'checkbox',
+      parser: checkbox(),
+      jsonSchema: { type: 'boolean' },
+      validSampleValues: [true, false],
+      invalidSampleValues: [null, '', 'on', 1],
+    },
+  ])
 })
 
 describe('color parser', () => {
