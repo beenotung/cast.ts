@@ -1951,6 +1951,16 @@ describe('singletonArray parser', () => {
       'Invalid singletonArray, maxLength should be 1',
     )
   })
+  it('should emit json schema for an array of exactly one item', () => {
+    // the input is an array even though the parsed value is the element,
+    // so this is asserted directly instead of via testJsonSchema
+    expect(getParserJsonSchema(singletonArray(string()))).to.deep.equals({
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      maxItems: 1,
+    })
+  })
 })
 
 describe('id parser', () => {

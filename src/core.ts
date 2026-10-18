@@ -2061,6 +2061,10 @@ export function singletonArray<T>(valueParser: Parser<T>): Parser<T> {
   return {
     parse,
     type: valueParser.type,
+    // the input is an array of exactly one element; the parser unwraps it
+    get jsonSchema(): JsonSchema | undefined {
+      return arrayParser.jsonSchema
+    },
     sampleValue: valueParser.sampleValue,
     randomSample: valueParser.randomSample,
   }
