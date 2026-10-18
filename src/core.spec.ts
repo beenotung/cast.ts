@@ -1904,6 +1904,37 @@ describe('array parser', () => {
     sampleValue: [float().sampleValue],
     customSample: () => array(float(), mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'string array',
+      parser: array(string()),
+      jsonSchema: { type: 'array', items: { type: 'string' } },
+      validSampleValues: [['alice', 'bob']],
+      invalidSampleValues: [['alice', 1], 'alice', null],
+    },
+    {
+      title: 'array with length bounds',
+      parser: array(string(), { minLength: 1, maxLength: 2 }),
+      jsonSchema: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 1,
+        maxItems: 2,
+      },
+      validSampleValues: [['alice'], ['alice', 'bob']],
+      invalidSampleValues: [[], ['alice', 'bob', 'charlie'], ['alice', 1]],
+    },
+    {
+      title: 'nested array',
+      parser: array(array(number())),
+      jsonSchema: {
+        type: 'array',
+        items: { type: 'array', items: { type: 'number' } },
+      },
+      validSampleValues: [[[1, 2], [3]]],
+      invalidSampleValues: [[[1, 'a']], [1, 2]],
+    },
+  ])
 })
 
 describe('singletonArray parser', () => {

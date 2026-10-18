@@ -28,6 +28,9 @@ export type JsonSchema = AtLeastOneOf<{
   format?: string // e.g. 'uri'
   properties?: Record<string, JsonSchema>
   required?: string[]
+  items?: JsonSchema
+  minItems?: number
+  maxItems?: number
 }
 
 // used when building new data parser on top of existing parser
@@ -2011,11 +2014,28 @@ export function array<T>(
     }
     return values
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = {
+      type: 'array',
+      items: getParserJsonSchema(parser),
+    }
+    if (typeof options.minLength === 'number') {
+      schema.minItems = options.minLength
+    }
+    if (typeof options.maxLength === 'number') {
+      schema.maxItems = options.maxLength
+    }
+    return schema
+  }
   return {
     parse,
     parser,
     options,
     type: `Array<${getParserType(parser)}>`,
+    // computed lazily: the item parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return getJsonSchema()
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: [parser.sampleValue],
