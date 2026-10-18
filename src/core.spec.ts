@@ -2257,6 +2257,30 @@ describe('and parser', () => {
       validSampleValues: [{ a: 'alice', b: 1 }],
       invalidSampleValues: [{ a: 'alice' }, { b: 1 }, {}],
     },
+    {
+      title: 'intersection of number ranges',
+      parser: and<{ n: number }>([
+        object({ n: int({ min: 0 }) }),
+        object({ n: int({ max: 10 }) }),
+      ]),
+      jsonSchema: {
+        allOf: [
+          {
+            type: 'object',
+            properties: { n: { type: 'integer', minimum: 0 } },
+            required: ['n'],
+          },
+          {
+            type: 'object',
+            properties: { n: { type: 'integer', maximum: 10 } },
+            required: ['n'],
+          },
+        ],
+      },
+      // both bounds apply: -1 fails the minimum, 11 fails the maximum
+      validSampleValues: [{ n: 0 }, { n: 5 }, { n: 10 }],
+      invalidSampleValues: [{ n: -1 }, { n: 11 }],
+    },
   ])
 })
 
