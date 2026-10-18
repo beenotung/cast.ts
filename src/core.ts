@@ -10,12 +10,16 @@ export type Parser<T> = {
   randomSample: () => T
 }
 
-type AtLeastOne<A, B> = (A & Partial<B>) | (B & Partial<A>) | (A & B)
+// at least one of the keys must be present
+type AtLeastOneOf<T, K extends keyof T = keyof T> = Partial<T> &
+  (K extends unknown ? { [P in K]: T[P] } : never)
 
-export type JsonSchema = AtLeastOne<
-  { type: string },
-  AtLeastOne<{ const: Primitive }, { enum: Primitive[] }>
-> & {
+export type JsonSchema = AtLeastOneOf<{
+  type: string
+  const: Primitive
+  enum: Primitive[]
+  anyOf: JsonSchema[]
+}> & {
   minimum?: number
   maximum?: number
   minLength?: number
@@ -1030,6 +1034,12 @@ export function nullable<T>(
     parse,
     parser,
     type,
+    // computed lazily: the inner parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return {
+        anyOf: [getParserJsonSchema(parser), { type: 'null' }],
+      }
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: null,

@@ -1717,6 +1717,33 @@ describe('nullable parser', () => {
     customSample: () => nullable(string(), mockCustomSampleProps),
     skipInfer: true,
   })
+  testJsonSchema([
+    {
+      title: 'nullable string',
+      parser: nullable(string()),
+      jsonSchema: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+      validSampleValues: ['guest', null],
+      invalidSampleValues: [1, false],
+    },
+    {
+      title: 'nullable number',
+      parser: nullable(number({ min: 1 })),
+      jsonSchema: {
+        anyOf: [{ type: 'number', minimum: 1 }, { type: 'null' }],
+      },
+      validSampleValues: [1, 2.5, null],
+      invalidSampleValues: [0, -1],
+    },
+    {
+      title: 'nullable literal',
+      parser: nullable(literal('guest')),
+      jsonSchema: {
+        anyOf: [{ const: 'guest', type: 'string' }, { type: 'null' }],
+      },
+      validSampleValues: ['guest', null],
+      invalidSampleValues: ['admin', 1],
+    },
+  ])
 })
 
 describe('array parser', () => {
