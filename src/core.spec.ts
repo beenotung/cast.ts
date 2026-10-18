@@ -1593,6 +1593,36 @@ describe('enums values parser', () => {
     customSample: () => values(['user', 'admin'], mockCustomSampleProps),
     skipInfer: true,
   })
+  testJsonSchema([
+    {
+      title: 'string enums',
+      parser: values(['red', 'green']),
+      jsonSchema: { enum: ['red', 'green'], type: 'string' },
+      validSampleValues: ['red', 'green'],
+      invalidSampleValues: ['blue', '', 1, null],
+    },
+    {
+      title: 'integer enums',
+      parser: values([1, 2, 3]),
+      jsonSchema: { enum: [1, 2, 3], type: 'integer' },
+      validSampleValues: [1, 2, 3],
+      invalidSampleValues: [4, '1', null],
+    },
+    {
+      title: 'integer and number enums',
+      parser: values([1, 3.14]),
+      jsonSchema: { enum: [1, 3.14], type: 'number' },
+      validSampleValues: [1, 3.14],
+      invalidSampleValues: [2, '1', null],
+    },
+    {
+      title: 'mixed type enums',
+      parser: values(['a', 1, true]),
+      jsonSchema: { enum: ['a', 1, true] },
+      validSampleValues: ['a', 1, true],
+      invalidSampleValues: ['b', 2, false, null],
+    },
+  ])
 })
 
 describe('nullable parser', () => {

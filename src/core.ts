@@ -12,7 +12,10 @@ export type Parser<T> = {
 
 type AtLeastOne<A, B> = (A & Partial<B>) | (B & Partial<A>) | (A & B)
 
-export type JsonSchema = AtLeastOne<{ type: string }, { const: Primitive }> & {
+export type JsonSchema = AtLeastOne<
+  { type: string },
+  AtLeastOne<{ const: Primitive }, { enum: Primitive[] }>
+> & {
   minimum?: number
   maximum?: number
   minLength?: number
@@ -1767,6 +1770,23 @@ function getPrimitiveJsonType(value: Primitive): string | undefined {
   }
 }
 
+/** @description the common JSON Schema type of the values, if there is one */
+function getCommonJsonType(values: Primitive[]): string | undefined {
+  let types = values.map(getPrimitiveJsonType)
+  if (types.length === 0 || types.some(type => type === undefined)) {
+    return undefined
+  }
+  let unique = new Set(types)
+  if (unique.size === 1) {
+    return types[0]
+  }
+  // integers are valid numbers, so a mixed integer/number list is `number`
+  if (unique.size === 2 && unique.has('integer') && unique.has('number')) {
+    return 'number'
+  }
+  return undefined
+}
+
 export function literal<T extends Primitive>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
     if (input === value) return value
@@ -1838,10 +1858,19 @@ export function values<T extends Primitive>(
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { enum: values }
+    let type = getCommonJsonType(values)
+    if (type) {
+      schema.type = type
+    }
+    return schema
+  }
   return {
     parse,
     values,
     type: values.map(value => JSON.stringify(value)).join(' | '),
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: values[0],
