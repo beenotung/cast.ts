@@ -1600,6 +1600,14 @@ export type TimestampOptions = {
   /** @description default 'second' */
   precision?: TimestampPrecision
 }
+const timestampPatternByPrecision: Record<TimestampPrecision, string> = {
+  // e.g. "2026-10-19 13:45"
+  minute: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$',
+  // e.g. "2026-10-19 13:45:00"
+  second: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+  // e.g. "2026-10-19 13:45:00.000"
+  millisecond: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}$',
+}
 /**
  * @description parse timestamp string in format 'yyyy-mm-dd hh:mm:ss' from Date | string
  */
@@ -1663,10 +1671,19 @@ export function timestamp(
     }
     return timestamp
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'string' }
+    if (options.nonEmpty) {
+      schema.minLength = 1
+    }
+    schema.pattern = timestampPatternByPrecision[precision]
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: toTimestampString(

@@ -1004,6 +1004,63 @@ describe('timestamp parser', () => {
     sampleValue: '2022-09-17 13:45:00',
     customSample: () => timestamp(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic timestamp',
+      parser: timestamp(),
+      jsonSchema: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+      },
+      validSampleValues: ['2022-09-17 13:45:00'],
+      invalidSampleValues: [null, '', '2022-09-17', '2022-09-17 13:45'],
+    },
+    {
+      title: 'timestamp with minute precision',
+      parser: timestamp({ precision: 'minute' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$',
+      },
+      validSampleValues: ['2022-09-17 13:45'],
+      invalidSampleValues: ['2022-09-17 13:45:00'],
+    },
+    {
+      title: 'timestamp with millisecond precision',
+      parser: timestamp({ precision: 'millisecond' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}$',
+      },
+      validSampleValues: ['2022-09-17 13:45:00.123'],
+      invalidSampleValues: ['2022-09-17 13:45:00'],
+    },
+    {
+      title: 'non-empty timestamp',
+      parser: timestamp({ nonEmpty: true }),
+      jsonSchema: {
+        type: 'string',
+        minLength: 1,
+        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+      },
+      validSampleValues: ['2022-09-17 13:45:00'],
+      invalidSampleValues: [''],
+    },
+  ])
+  it('should not encode min/max in the schema', () => {
+    // JSON Schema has no portable string-range keyword: minimum/maximum are
+    // number-only, so timestamp ranges stay enforced by parse() alone
+    let schema = getParserJsonSchema(
+      timestamp({
+        min: '2022-01-01 00:00:00',
+        max: '2022-12-31 23:59:59',
+      }),
+    )
+    expect(schema).to.deep.equals({
+      type: 'string',
+      pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+    })
+  })
 })
 
 describe('url parser', () => {
