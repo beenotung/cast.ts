@@ -22,6 +22,8 @@ export type JsonSchema = AtLeastOne<
   maxLength?: number
   pattern?: string // regex string
   format?: string // e.g. 'uri'
+  properties?: Record<string, JsonSchema>
+  required?: string[]
 }
 
 // used when building new data parser on top of existing parser
@@ -956,11 +958,34 @@ export function object<T extends object>(
     return type
   }
 
+  function getJsonSchema(): JsonSchema {
+    let properties: Record<string, JsonSchema> = {}
+    let required: string[] = []
+    for (let key in fieldParsers) {
+      let fieldParser = fieldParsers[key]
+      properties[key] = getParserJsonSchema(fieldParser)
+      // optional fields may be absent; a checkbox defaults to false when absent
+      if (!isOptional(fieldParser) && !isCheckbox(fieldParser)) {
+        required.push(key)
+      }
+    }
+    let schema: JsonSchema = { type: 'object', properties }
+    if (required.length > 0) {
+      schema.required = required
+    }
+    return schema
+  }
+
   return {
     parse,
     options: fieldParsers,
     get type() {
       return getType()
+    },
+    // computed lazily: the schema depends on field parsers, and not every
+    // parser supports jsonSchema yet — building an object must not throw
+    get jsonSchema() {
+      return getJsonSchema()
     },
     ...populateSampleProps({
       defaultProps: {

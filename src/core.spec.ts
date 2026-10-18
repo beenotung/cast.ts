@@ -690,6 +690,67 @@ describe('object parser', () => {
       expect(type).includes("'max-char': number")
     })
   })
+  testJsonSchema([
+    {
+      title: 'empty object',
+      parser: object({}),
+      jsonSchema: { type: 'object', properties: {} },
+      validSampleValues: [{}],
+      invalidSampleValues: [null, [], 'text', 1],
+    },
+    {
+      title: 'object with required fields',
+      parser: object({ name: string(), age: number() }),
+      jsonSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' }, age: { type: 'number' } },
+        required: ['name', 'age'],
+      },
+      validSampleValues: [{ name: 'alice', age: 30 }],
+      invalidSampleValues: [{ name: 'alice' }, { age: 30 }, { name: 1, age: 30 }],
+    },
+    {
+      title: 'object with optional field',
+      parser: object({ name: string(), nickname: optional(string()) }),
+      jsonSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' }, nickname: { type: 'string' } },
+        required: ['name'],
+      },
+      validSampleValues: [
+        { name: 'alice' },
+        { name: 'alice', nickname: 'ally' },
+      ],
+      invalidSampleValues: [{}, { nickname: 'ally' }, { name: 1 }],
+    },
+    {
+      title: 'object with checkbox field',
+      parser: object({ active: checkbox() }),
+      jsonSchema: {
+        type: 'object',
+        properties: { active: { type: 'boolean' } },
+      },
+      validSampleValues: [{}, { active: true }, { active: false }],
+      invalidSampleValues: [{ active: 'yes' }],
+    },
+    {
+      title: 'nested object',
+      parser: object({ user: object({ name: string() }) }),
+      jsonSchema: {
+        type: 'object',
+        properties: {
+          user: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+        },
+        required: ['user'],
+      },
+      validSampleValues: [{ user: { name: 'alice' } }],
+      invalidSampleValues: [{ user: {} }, { user: { name: 1 } }, {}],
+    },
+  ])
 })
 
 describe('date parser', () => {
