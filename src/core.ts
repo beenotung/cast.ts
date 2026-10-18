@@ -1405,10 +1405,20 @@ export function dateString(
     }
     return dateString
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'string' }
+    if (options.nonEmpty) {
+      schema.minLength = 1
+    }
+    // month 1-12 and day 1-31; non-padded input is normalised by parse()
+    schema.pattern = '^\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])$'
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultDateStringSampleProps,
       customProps: options,

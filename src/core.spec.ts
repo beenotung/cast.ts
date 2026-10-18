@@ -993,6 +993,29 @@ describe('dateString parser', () => {
     sampleValue: '2022-09-17',
     customSample: () => dateString(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'date string',
+      parser: dateString(),
+      jsonSchema: {
+        type: 'string',
+        pattern: '^\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])$',
+      },
+      validSampleValues: ['2022-09-17', '2024-01-02', '2022-9-7'],
+      invalidSampleValues: ['2022-13-01', '2022-09-32', '17-09-2022', 'text'],
+    },
+    {
+      title: 'non-empty date string',
+      parser: dateString({ nonEmpty: true }),
+      jsonSchema: {
+        type: 'string',
+        minLength: 1,
+        pattern: '^\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])$',
+      },
+      validSampleValues: ['2022-09-17'],
+      invalidSampleValues: [''],
+    },
+  ])
 })
 
 describe('timeString parser', () => {
