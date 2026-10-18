@@ -1517,6 +1517,36 @@ describe('literal parser', () => {
     customSample: false,
     skipInfer: true,
   })
+  testJsonSchema([
+    {
+      title: 'string literal',
+      parser: literal('guest'),
+      jsonSchema: { const: 'guest', type: 'string' },
+      validSampleValues: ['guest'],
+      invalidSampleValues: ['admin', '', null, 1],
+    },
+    {
+      title: 'number literal',
+      parser: literal(42),
+      jsonSchema: { const: 42, type: 'integer' },
+      validSampleValues: [42],
+      invalidSampleValues: [41, '42', null],
+    },
+    {
+      title: 'boolean literal',
+      parser: literal(true),
+      jsonSchema: { const: true, type: 'boolean' },
+      validSampleValues: [true],
+      invalidSampleValues: [false, 'true', null],
+    },
+    {
+      title: 'null literal',
+      parser: literal(null),
+      jsonSchema: { const: null, type: 'null' },
+      validSampleValues: [null],
+      invalidSampleValues: [undefined, '', 0, false],
+    },
+  ])
 })
 
 describe('enums values parser', () => {

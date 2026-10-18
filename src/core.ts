@@ -10,9 +10,9 @@ export type Parser<T> = {
   randomSample: () => T
 }
 
-export type JsonSchema = {
-  type: string
-  const?: Primitive
+type AtLeastOne<A, B> = (A & Partial<B>) | (B & Partial<A>) | (A & B)
+
+export type JsonSchema = AtLeastOne<{ type: string }, { const: Primitive }> & {
   minimum?: number
   maximum?: number
   minLength?: number
@@ -1749,6 +1749,24 @@ export function toTimestampString(
   }
 }
 
+/** @description map a primitive to its JSON Schema type, when one applies */
+function getPrimitiveJsonType(value: Primitive): string | undefined {
+  if (value === null) return 'null'
+  switch (typeof value) {
+    case 'string':
+      return 'string'
+    case 'number':
+      return Number.isInteger(value) ? 'integer' : 'number'
+    case 'boolean':
+      return 'boolean'
+    case 'bigint':
+      return 'integer'
+    case 'symbol':
+    case 'undefined':
+      return undefined
+  }
+}
+
 export function literal<T extends Primitive>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
     if (input === value) return value
@@ -1762,10 +1780,19 @@ export function literal<T extends Primitive>(value: T) {
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { const: value }
+    let type = getPrimitiveJsonType(value)
+    if (type) {
+      schema.type = type
+    }
+    return schema
+  }
   return {
     parse,
     value,
     type: JSON.stringify(value),
+    jsonSchema: getJsonSchema(),
     sampleValue: value,
     randomSample: () => value,
   }
