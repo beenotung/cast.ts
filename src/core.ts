@@ -19,6 +19,7 @@ export type JsonSchema = AtLeastOneOf<{
   const: Primitive
   enum: Primitive[]
   anyOf: JsonSchema[]
+  allOf: JsonSchema[]
 }> & {
   minimum?: number
   maximum?: number
@@ -2253,6 +2254,12 @@ export function and<P extends object>(
     parsers,
     options,
     type: intersectionType,
+    // computed lazily: a member parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return {
+        allOf: parsers.map(getParserJsonSchema),
+      }
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: parsers.reduce(

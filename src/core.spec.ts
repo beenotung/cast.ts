@@ -2233,6 +2233,31 @@ describe('and parser', () => {
     expect(typeof user.name).to.equals('string')
     expect(userParser.type).to.equals(userType)
   })
+  testJsonSchema([
+    {
+      title: 'intersection of objects',
+      parser: and<{ a: string; b: number }>([
+        object({ a: string() }),
+        object({ b: number() }),
+      ]),
+      jsonSchema: {
+        allOf: [
+          {
+            type: 'object',
+            properties: { a: { type: 'string' } },
+            required: ['a'],
+          },
+          {
+            type: 'object',
+            properties: { b: { type: 'number' } },
+            required: ['b'],
+          },
+        ],
+      },
+      validSampleValues: [{ a: 'alice', b: 1 }],
+      invalidSampleValues: [{ a: 'alice' }, { b: 1 }, {}],
+    },
+  ])
 })
 
 describe('dict parser', () => {
