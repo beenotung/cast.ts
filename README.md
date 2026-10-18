@@ -406,6 +406,24 @@ The checkbox parser doesn't take additional options
 let primary_color = color().parse(req.body.primary_color)
 ```
 
+Supported formats:
+
+- hex: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` (case-insensitive)
+- classic syntax: `rgb(r, g, b)`, `rgba(r, g, b, a)`
+- modern syntax: `rgb(r g b)`, `rgb(r g b / a)`, `rgba(r g b / a)`
+
+Channels are `0`-`255` or `0%`-`100%`, and alpha is `0`-`1` or `0%`-`100%`.
+`rgb()` and `rgba()` are aliases, so both accept 3 or 4 arguments.
+
+Out-of-range values are rejected even though CSS clamps them, so that a typo
+like `rgb(256, 0, 0)` fails early instead of being silently clamped.
+
+The parser returns the input unchanged - it does not normalise, shorten or
+convert between hex and `rgb()`.
+
+Named colours (e.g. `red`) and CSS functions other than `rgb()`/`rgba()`
+(e.g. `hsl()`) are not supported.
+
 The color parser doesn't take additional options
 
 ## Object

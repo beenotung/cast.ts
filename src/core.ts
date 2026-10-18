@@ -534,7 +534,32 @@ const defaultEmailSampleProps: SampleProps<string> = {
   randomSample: () => 'user-' + randomId() + '@example.net',
 }
 
-let colorRegex = /^#[0-9a-f]{6}$/i
+/** @description the regex used by color(), exported for reuse when validating colors */
+export let colorRegex: RegExp
+{
+  // flag-free so `colorRegex.source` can be reused as the json schema pattern
+  // (JSON Schema patterns cannot carry the `i` flag)
+  //
+  // channel: 0-255, or 0%-100%   e.g. 0, 255, 50%, 100%
+  // alpha:   0-1,   or 0%-100%   e.g. 0, 0.5, 1, 50%
+  let colorChannel =
+    '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d|(?:100|[1-9]?\\d)%)'
+  let colorAlpha = '(?:0|1|0?\\.\\d+|(?:100|[1-9]?\\d)%)'
+  // rgb() and rgba() are aliases; both take 3 or 4 arguments
+  //   e.g. rgb(255, 0, 0), rgba(255, 0, 0, 0.5), rgb(12 32 54 / 0.5)
+  let colorFunction = '[rR][gG][bB][aA]?'
+  // classic comma-separated syntax
+  let colorComma = `${colorFunction}\\(\\s*${colorChannel}\\s*,\\s*${colorChannel}\\s*,\\s*${colorChannel}(?:\\s*,\\s*${colorAlpha})?\\s*\\)`
+  // modern space-separated syntax, with alpha after a slash
+  let colorSpace = `${colorFunction}\\(\\s*${colorChannel}\\s+${colorChannel}\\s+${colorChannel}(?:\\s*/\\s*${colorAlpha})?\\s*\\)`
+  // hexDigit: 0-9, a-f or A-F   e.g. 0, 9, a, F
+  let hexDigit = '[0-9a-fA-F]'
+  // hex: 3, 4, 6 or 8 digits   e.g. #abc, #ABCD, #123456, #12345678
+  let colorHex = `#(?:${hexDigit}{3,4}|${hexDigit}{6}|${hexDigit}{8})`
+  // full color: hex, or rgb()/rgba() in either syntax
+  //   e.g. #c0ffee, rgb(255, 0, 0), rgb(12 32 54 / 50%)
+  colorRegex = new RegExp(`^(?:${colorHex}|${colorComma}|${colorSpace})$`)
+}
 /** @description for parsing <input type="color"> in html form submission */
 export function color(options?: CustomSampleOptions<string>) {
   function parse(input: unknown, context: ParserContext = {}): string {
@@ -553,15 +578,23 @@ export function color(options?: CustomSampleOptions<string>) {
         name: context.name,
         typePrefix: context.typePrefix,
         expectedType,
-        reason: 'should be in "#rrggbb" hexadecimal format',
+        reason:
+          'should be a hex color (#rgb, #rgba, #rrggbb, #rrggbbaa) or rgb()/rgba()',
         reasonSuffix: context.reasonSuffix,
       })
     }
     return input
   }
+  function getJsonSchema(): JsonSchema {
+    return {
+      type: 'string',
+      pattern: colorRegex.source,
+    }
+  }
   return {
     parse,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultColorSampleProps,
       customProps: options,

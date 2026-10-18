@@ -8,6 +8,7 @@ import {
   boolean,
   checkbox,
   color,
+  colorRegex,
   d2,
   d3,
   date,
@@ -471,18 +472,88 @@ describe('checkbox parser', () => {
 })
 
 describe('color parser', () => {
-  it('should parse rgb hex code', () => {
-    expect(color().parse('#123456')).to.be.equals('#123456')
-    expect(color().parse('#ffffff')).to.be.equals('#ffffff')
-    expect(color().parse('#FFFFFF')).to.be.equals('#FFFFFF')
+  describe('hex color', () => {
+    it('should parse #rrggbb', () => {
+      expect(color().parse('#123456')).to.be.equals('#123456')
+      expect(color().parse('#ffffff')).to.be.equals('#ffffff')
+      expect(color().parse('#FFFFFF')).to.be.equals('#FFFFFF')
+    })
+    it('should parse #rgb shorthand', () => {
+      expect(color().parse('#abc')).to.be.equals('#abc')
+    })
+    it('should parse #rgba shorthand with alpha', () => {
+      expect(color().parse('#ABCD')).to.be.equals('#ABCD')
+    })
+    it('should parse #rrggbbaa with alpha', () => {
+      expect(color().parse('#12345678')).to.be.equals('#12345678')
+    })
   })
-  it('should reject invalid format', () => {
-    expect(() => color().parse('')).to.be.throws(
-      'Invalid color, got empty string',
-    )
-    expect(() => color().parse('#rrggbb')).to.be.throws(
-      'Invalid color, should be in "#rrggbb" hexadecimal format',
-    )
+  describe('rgb() and rgba()', () => {
+    it('should parse classic comma syntax', () => {
+      for (let value of [
+        'rgb(255, 0, 0)',
+        'rgba(255,0,0,0.5)',
+        'rgb(255, 0, 0, 0.5)', // rgb and rgba are aliases
+        'rgba(255, 0, 0)',
+        'rgba(12, 32, 54, 50%)', // alpha as a percentage
+        'rgb(100%, 0%, 50%)',
+      ]) {
+        expect(color().parse(value)).to.be.equals(value)
+      }
+    })
+    it('should parse modern space syntax', () => {
+      for (let value of [
+        'rgb(12 32 54)',
+        'rgb(12 32 54 / 0.5)',
+        'rgb(12 32 54 / 50%)',
+        'rgba(12 32 54 / 0.5)',
+        'rgb(50% 50% 50%)',
+        'RGB(10 20 30)', // case-insensitive
+      ]) {
+        expect(color().parse(value)).to.be.equals(value)
+      }
+    })
+  })
+  describe('invalid format', () => {
+    let message =
+      'Invalid color, should be a hex color (#rgb, #rgba, #rrggbb, #rrggbbaa) or rgb()/rgba()'
+    it('should reject empty string', () => {
+      expect(() => color().parse('')).to.be.throws(
+        'Invalid color, got empty string',
+      )
+    })
+    it('should reject non-hex digits', () => {
+      expect(() => color().parse('#rrggbb')).to.be.throws(message)
+    })
+    it('should reject wrong hex length', () => {
+      // 5 and 7 digits are neither shorthand nor full hex
+      expect(() => color().parse('#12345')).to.be.throws(message)
+      expect(() => color().parse('#1234567')).to.be.throws(message)
+    })
+    it('should reject a channel above 255', () => {
+      expect(() => color().parse('rgb(256, 0, 0)')).to.be.throws(message)
+      expect(() => color().parse('rgb(256 0 0)')).to.be.throws(message)
+    })
+    it('should reject an alpha above 1', () => {
+      expect(() => color().parse('rgba(0,0,0,2)')).to.be.throws(message)
+      expect(() => color().parse('rgb(12 32 54 / 1.5)')).to.be.throws(message)
+    })
+    it('should reject a percentage above 100%', () => {
+      expect(() => color().parse('rgb(101%, 0%, 0%)')).to.be.throws(message)
+    })
+    it('should reject a missing channel', () => {
+      expect(() => color().parse('rgb(12 32)')).to.be.throws(message)
+      expect(() => color().parse('rgb(12, 32)')).to.be.throws(message)
+    })
+    it('should reject mixed comma and space syntax', () => {
+      expect(() => color().parse('rgb(12, 32, 54 / 0.5)')).to.be.throws(message)
+    })
+    it('should reject named colors', () => {
+      expect(() => color().parse('red')).to.be.throws(message)
+    })
+    it('should reject hsl()', () => {
+      expect(() => color().parse('hsl(0 0% 0%)')).to.be.throws(message)
+    })
   })
   testReflection({
     parser: color(),
@@ -490,6 +561,36 @@ describe('color parser', () => {
     sampleValue: '#c0ffee',
     customSample: () => color(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'color',
+      parser: color(),
+      // the pattern comes straight from `colorRegex`, so schema and parser
+      // share one source of truth
+      jsonSchema: { type: 'string', pattern: colorRegex.source },
+      validSampleValues: [
+        '#123456',
+        '#fff',
+        '#12345678',
+        'rgb(255, 0, 0)',
+        'rgba(0,0,0,0.5)',
+        'rgb(12 32 54)',
+        'rgb(12 32 54 / 50%)',
+      ],
+      invalidSampleValues: [
+        null,
+        '',
+        '#rrggbb',
+        '#12345',
+        '#1234567',
+        'rgb(256,0,0)',
+        'rgba(0,0,0,2)',
+        'rgb(12 32)',
+        'red',
+        'hsl(0 0% 0%)',
+      ],
+    },
+  ])
 })
 
 describe('object parser', () => {
