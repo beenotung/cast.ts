@@ -638,6 +638,7 @@ let item_ids = array(string(), { maybeSingle: true }).parse(req.query.item_id)
 
 ```typescript
 type ArrayOptions = {
+  length?: number // exactly this many items; shortcut for minLength = maxLength
   minLength?: number
   maxLength?: number
   maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)

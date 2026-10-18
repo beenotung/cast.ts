@@ -1898,6 +1898,31 @@ describe('array parser', () => {
       array(string(), { maxLength: 2 }).parse(['alice', 'bob', 'charlie']),
     ).to.throws('Invalid array, maxLength should be 2')
   })
+  it('should accept an array of exactly the given length', () => {
+    expect(
+      array(string(), { length: 2 }).parse(['alice', 'bob']),
+    ).to.deep.equals(['alice', 'bob'])
+  })
+  it('should accept an empty array when length is 0', () => {
+    expect(array(string(), { length: 0 }).parse([])).to.deep.equals([])
+    expect(() => array(string(), { length: 0 }).parse(['alice'])).to.throws(
+      'Invalid array, maxLength should be 0',
+    )
+  })
+  it('should reject an array shorter than the given length', () => {
+    expect(() => array(string(), { length: 2 }).parse(['alice'])).to.throws(
+      'Invalid array, minLength should be 2',
+    )
+  })
+  it('should reject an array longer than the given length', () => {
+    expect(() =>
+      array(string(), { length: 2 }).parse(['alice', 'bob', 'charlie']),
+    ).to.throws('Invalid array, maxLength should be 2')
+  })
+  it('should treat length as a shortcut for minLength and maxLength', () => {
+    let parser = array(string(), { length: 1, minLength: 3, maxLength: 5 })
+    expect(parser.parse(['alice'])).to.deep.equals(['alice'])
+  })
   testReflection({
     parser: array(float()),
     type: 'Array<number>',
@@ -1923,6 +1948,18 @@ describe('array parser', () => {
       },
       validSampleValues: [['alice'], ['alice', 'bob']],
       invalidSampleValues: [[], ['alice', 'bob', 'charlie'], ['alice', 1]],
+    },
+    {
+      title: 'array with exact length',
+      parser: array(string(), { length: 2 }),
+      jsonSchema: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 2,
+        maxItems: 2,
+      },
+      validSampleValues: [['alice', 'bob']],
+      invalidSampleValues: [['alice'], ['alice', 'bob', 'charlie']],
     },
     {
       title: 'nested array',

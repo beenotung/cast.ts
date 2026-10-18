@@ -1956,14 +1956,19 @@ export function values<T extends Primitive>(
 export let enums = values
 
 export type ArrayOptions = {
-  minLength?: number
-  maxLength?: number
+  length?: number // exactly this many items; shortcut for minLength = maxLength
+  minLength?: number // at least this many items
+  maxLength?: number // at most this many items
   maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)
 }
 export function array<T>(
   parser: Parser<T>,
   options: ArrayOptions & CustomSampleOptions<T[]> = {},
 ) {
+  if (typeof options.length === 'number') {
+    options.minLength = options.length
+    options.maxLength = options.length
+  }
   function parse(input: unknown, context: ParserContext = {}): T[] {
     let { typePrefix, reasonSuffix } = context
     let expectedType = context.overrideType || 'array'
