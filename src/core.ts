@@ -1335,6 +1335,9 @@ export type DateStringOptions = {
   min?: number | Date | string
   max?: number | Date | string
 }
+// month 1-12 and day 1-31; non-padded input is normalised by parse()
+// e.g. 2022-09-17, 2024-1-2
+const datePattern = '\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])'
 /**
  * @description parse date string in format 'yyyy-mm-dd' from Date | string | number
  */
@@ -1410,8 +1413,7 @@ export function dateString(
     if (options.nonEmpty) {
       schema.minLength = 1
     }
-    // month 1-12 and day 1-31; non-padded input is normalised by parse()
-    schema.pattern = '^\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])$'
+    schema.pattern = `^${datePattern}$`
     return schema
   }
   return {
@@ -1722,11 +1724,11 @@ export type TimestampOptions = {
 }
 const timestampPatternByPrecision: Record<TimestampPrecision, string> = {
   // e.g. "2026-10-19 13:45"
-  minute: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$',
+  minute: `^${datePattern} ${timePatternByPrecision.minute}$`,
   // e.g. "2026-10-19 13:45:00"
-  second: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+  second: `^${datePattern} ${timePatternByPrecision.second}$`,
   // e.g. "2026-10-19 13:45:00.000"
-  millisecond: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}$',
+  millisecond: `^${datePattern} ${timePatternByPrecision.millisecond}$`,
 }
 /**
  * @description parse timestamp string in format 'yyyy-mm-dd hh:mm:ss' from Date | string

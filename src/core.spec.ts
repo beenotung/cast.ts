@@ -55,6 +55,26 @@ let mockCustomSampleProps = {
 let ajv = new Ajv({ strict: true, allErrors: true })
 addFormats(ajv)
 
+// expected date/time patterns, spelled out once so the fixtures stay readable
+// datePart: 2022-09-17, 2024-1-2 (non-padded input is normalised by parse())
+let datePart = '\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])'
+let timePartByPrecision = {
+  // e.g. "13:45" or "9:05"
+  minute: '(?:[01]?\\d|2[0-3]):[0-5]\\d',
+  // e.g. "13:45:00"
+  second: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d',
+  // e.g. "13:45:00.123" or "13:45:00.5" (padded by parse)
+  millisecond: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{1,3}',
+}
+// e.g. "2022-09-17"
+let expectedDateString = `^${datePart}$`
+function expectedTimeString(precision: keyof typeof timePartByPrecision) {
+  return `^${timePartByPrecision[precision]}$`
+}
+function expectedTimestamp(precision: keyof typeof timePartByPrecision) {
+  return `^${datePart} ${timePartByPrecision[precision]}$`
+}
+
 describe('string parser', () => {
   it('should auto convert number into string', () => {
     expect(string().parse(42)).to.equals('42')
@@ -999,7 +1019,7 @@ describe('dateString parser', () => {
       parser: dateString(),
       jsonSchema: {
         type: 'string',
-        pattern: '^\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])$',
+        pattern: expectedDateString,
       },
       validSampleValues: ['2022-09-17', '2024-01-02', '2022-9-7'],
       invalidSampleValues: ['2022-13-01', '2022-09-32', '17-09-2022', 'text'],
@@ -1010,7 +1030,7 @@ describe('dateString parser', () => {
       jsonSchema: {
         type: 'string',
         minLength: 1,
-        pattern: '^\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])$',
+        pattern: expectedDateString,
       },
       validSampleValues: ['2022-09-17'],
       invalidSampleValues: [''],
@@ -1139,7 +1159,7 @@ describe('timeString parser', () => {
       parser: timeString(),
       jsonSchema: {
         type: 'string',
-        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d$',
+        pattern: expectedTimeString('minute'),
       },
       validSampleValues: ['13:45', '9:05'],
       invalidSampleValues: ['24:00', '13:60', '13:45:00'],
@@ -1149,7 +1169,7 @@ describe('timeString parser', () => {
       parser: timeString({ precision: 'second' }),
       jsonSchema: {
         type: 'string',
-        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d$',
+        pattern: expectedTimeString('second'),
       },
       validSampleValues: ['13:45:00', '9:05:07'],
       invalidSampleValues: ['13:45', '13:45:60', '24:00:00'],
@@ -1159,7 +1179,7 @@ describe('timeString parser', () => {
       parser: timeString({ precision: 'millisecond' }),
       jsonSchema: {
         type: 'string',
-        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{1,3}$',
+        pattern: expectedTimeString('millisecond'),
       },
       validSampleValues: ['13:45:00.123', '13:45:00.5'],
       invalidSampleValues: ['13:45:00', '25:00:00.000', '13:45:60.000'],
@@ -1170,7 +1190,7 @@ describe('timeString parser', () => {
       jsonSchema: {
         type: 'string',
         minLength: 1,
-        pattern: '^(?:[01]?\\d|2[0-3]):[0-5]\\d$',
+        pattern: expectedTimeString('minute'),
       },
       validSampleValues: ['13:45'],
       invalidSampleValues: [''],
@@ -1274,17 +1294,24 @@ describe('timestamp parser', () => {
       parser: timestamp(),
       jsonSchema: {
         type: 'string',
-        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+        pattern: expectedTimestamp('second'),
       },
       validSampleValues: ['2022-09-17 13:45:00'],
-      invalidSampleValues: [null, '', '2022-09-17', '2022-09-17 13:45'],
+      invalidSampleValues: [
+        null,
+        '',
+        '2022-09-17',
+        '2022-09-17 13:45',
+        '2022-13-01 13:45:00',
+        '2022-09-17 24:00:00',
+      ],
     },
     {
       title: 'timestamp with minute precision',
       parser: timestamp({ precision: 'minute' }),
       jsonSchema: {
         type: 'string',
-        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$',
+        pattern: expectedTimestamp('minute'),
       },
       validSampleValues: ['2022-09-17 13:45'],
       invalidSampleValues: ['2022-09-17 13:45:00'],
@@ -1294,7 +1321,7 @@ describe('timestamp parser', () => {
       parser: timestamp({ precision: 'millisecond' }),
       jsonSchema: {
         type: 'string',
-        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}$',
+        pattern: expectedTimestamp('millisecond'),
       },
       validSampleValues: ['2022-09-17 13:45:00.123'],
       invalidSampleValues: ['2022-09-17 13:45:00'],
@@ -1305,7 +1332,7 @@ describe('timestamp parser', () => {
       jsonSchema: {
         type: 'string',
         minLength: 1,
-        pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+        pattern: expectedTimestamp('second'),
       },
       validSampleValues: ['2022-09-17 13:45:00'],
       invalidSampleValues: [''],
@@ -1322,7 +1349,7 @@ describe('timestamp parser', () => {
     )
     expect(schema).to.deep.equals({
       type: 'string',
-      pattern: '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+      pattern: expectedTimestamp('second'),
     })
   })
 })
