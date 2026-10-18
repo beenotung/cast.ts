@@ -455,6 +455,10 @@ describe('checkbox parser', () => {
     randomSamples: [true, false],
     customSample: () => checkbox(mockCustomSampleProps),
   })
+  it('should accept boolean values', () => {
+    expect(checkbox().parse(true)).to.equals(true)
+    expect(checkbox().parse(false)).to.equals(false)
+  })
 })
 
 describe('color parser', () => {

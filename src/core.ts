@@ -1090,9 +1090,11 @@ export function checkbox(options?: CustomSampleOptions<boolean>) {
     let expectedType = context.overrideType || 'checkbox'
     switch (input) {
       case 'on':
+      case true:
         return true
       case undefined:
       case '':
+      case false:
         return false
       default:
         throw new InvalidInputError({
