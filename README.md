@@ -246,6 +246,7 @@ let username = string({ minLength: 3, maxLength: 32 }).parse(req.body.username)
 ```typescript
 type StringOptions = {
   nonEmpty?: boolean
+  allowEmpty?: boolean // alias for nonEmpty with opposite meaning; takes precedence when both are set
   minLength?: number
   maxLength?: number
   match?: RegExp
@@ -559,7 +560,7 @@ type UrlOptions = StringOptions & {
 }
 ```
 
-> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `nonEmpty: false`.
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `allowEmpty: true` (or `nonEmpty: false`).
 
 ## Email
 
@@ -579,7 +580,7 @@ type EmailOptions = StringOptions & {
 }
 ```
 
-> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `nonEmpty: false`.
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `allowEmpty: true` (or `nonEmpty: false`).
 
 > The address is kept as submitted unless `case` is set, so the local part is
 > not folded: RFC 5321 section 2.3.4.1 treats it as case-sensitive, although

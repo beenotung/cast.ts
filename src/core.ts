@@ -144,6 +144,8 @@ function toType(input: unknown): string {
 
 export type StringOptions = {
   nonEmpty?: boolean
+  /** alias for `nonEmpty` with opposite meaning; takes precedence when both are set */
+  allowEmpty?: boolean
   minLength?: number
   maxLength?: number
   match?: RegExp
@@ -153,6 +155,7 @@ export type StringOptions = {
 export function string(
   options: StringOptions & CustomSampleOptions<string> = {},
 ) {
+  normalizeEmptyFlags(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     let expectedType = context.overrideType || 'string'
     if (options.trim !== false && typeof input === 'string') {
@@ -268,6 +271,23 @@ export function string(
   }
 }
 
+/**
+ * Normalize `allowEmpty` and `nonEmpty` into each other before any defaulting,
+ * so the order of `nonEmpty ??= true` and this call cannot change the outcome.
+ * `allowEmpty` wins when both are set.
+ */
+function normalizeEmptyFlags(options: {
+  nonEmpty?: boolean
+  allowEmpty?: boolean
+}) {
+  if (options.allowEmpty !== undefined) {
+    options.nonEmpty = !options.allowEmpty
+  }
+  if (options.nonEmpty !== undefined) {
+    options.allowEmpty = !options.nonEmpty
+  }
+}
+
 let urlRegex = /^([^:]+):\/\/([^/?#]+)/
 export type UrlOptions = StringOptions & {
   domain?: string
@@ -279,6 +299,7 @@ export type UrlOptions = StringOptions & {
   // TODO support IPv6 host / origin; out of scope for now
 }
 export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
+  normalizeEmptyFlags(options)
   options.nonEmpty ??= true
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
@@ -476,6 +497,7 @@ export type EmailOptions = StringOptions & {
 export function email(
   options: EmailOptions & CustomSampleOptions<string> = {},
 ) {
+  normalizeEmptyFlags(options)
   options.nonEmpty ??= true
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {

@@ -120,6 +120,9 @@ describe('string parser', () => {
   it('should allow non-empty string', () => {
     expect(string().parse('42')).to.equals('42')
   })
+  it('should let allowEmpty take precedence over nonEmpty', () => {
+    expect(string({ nonEmpty: true, allowEmpty: true }).parse('')).to.equals('')
+  })
   it('should auto trim whitespace', () => {
     expect(string().parse(' alice ')).to.equals('alice')
     expect(string({ trim: false }).parse(' alice ')).to.equals(' alice ')
@@ -1474,9 +1477,8 @@ describe('url parser', () => {
       'Invalid non-empty url, got empty string',
     )
   })
-  it('should allow empty string when nonEmpty is false', () => {
-    // TODO set `allowEmpty` field instead of `nonEmpty`
-    expect(url({ nonEmpty: false }).parse('')).to.equals('')
+  it('should allow empty string when allowEmpty is true', () => {
+    expect(url({ allowEmpty: true }).parse('')).to.equals('')
   })
   it('should reject wrong protocol', () => {
     expect(() =>
@@ -1803,9 +1805,8 @@ describe('email parser', () => {
       'Invalid non-empty email, got empty string',
     )
   })
-  it('should allow empty string when nonEmpty is false', () => {
-    // TODO set `allowEmpty` field instead of `nonEmpty`
-    expect(email({ nonEmpty: false }).parse('')).to.equals('')
+  it('should allow empty string when allowEmpty is true', () => {
+    expect(email({ allowEmpty: true }).parse('')).to.equals('')
   })
   it('should reject invalid domain', () => {
     expect(() => email().parse('user@example_com')).to.throws(
