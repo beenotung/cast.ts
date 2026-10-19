@@ -738,6 +738,21 @@ describe('object parser', () => {
       username: 'alice',
     })
   })
+  it('should allow optional field to be empty string', () => {
+    expect(
+      object({
+        username: string(),
+        nickname: optional(string()),
+        profile_url: optional(url()),
+      }).parse({
+        username: 'alice',
+        nickname: '',
+        profile_url: '',
+      }),
+    ).to.deep.equals({
+      username: 'alice',
+    })
+  })
   it('should allow providing optional field', () => {
     expect(
       object({

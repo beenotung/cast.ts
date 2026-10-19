@@ -927,7 +927,12 @@ export function object<T extends object>(
         })
       }
       let valueInput = input[key as keyof typeof input]
-      if (valueInput == null && isOptional(valueParser)) {
+      if (
+        (valueInput === undefined ||
+          valueInput === null ||
+          valueInput === '') &&
+        isOptional(valueParser)
+      ) {
         continue
       }
       let value = valueParser.parse(valueInput, {
