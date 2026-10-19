@@ -1467,12 +1467,16 @@ describe('timestamp parser', () => {
 
 describe('url parser', () => {
   it('should reject null', () => {
-    expect(() => url().parse(null)).to.throws('Invalid url, got null')
+    expect(() => url().parse(null)).to.throws('Invalid non-empty url, got null')
   })
-  it('should reject empty string', () => {
-    expect(() => url({ nonEmpty: true }).parse('')).to.throws(
+  it('should reject empty string by default', () => {
+    expect(() => url().parse('')).to.throws(
       'Invalid non-empty url, got empty string',
     )
+  })
+  it('should allow empty string when nonEmpty is false', () => {
+    // TODO set `allowEmpty` field instead of `nonEmpty`
+    expect(url({ nonEmpty: false }).parse('')).to.equals('')
   })
   it('should reject wrong protocol', () => {
     expect(() =>
@@ -1627,7 +1631,7 @@ describe('url parser', () => {
     {
       title: 'basic url',
       parser: url(),
-      jsonSchema: { type: 'string', format: 'uri' },
+      jsonSchema: { type: 'string', format: 'uri', minLength: 1 },
       validSampleValues: [
         'https://example.net',
         'http://www.example.net/home',
@@ -1643,6 +1647,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^http://[^/?#]+',
       },
       validSampleValues: ['http://example.net'],
@@ -1654,6 +1659,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^(https|http)://[^/?#]+',
       },
       validSampleValues: ['https://example.net', 'http://example.net'],
@@ -1665,6 +1671,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^[^:]+://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
       },
       validSampleValues: [
@@ -1683,6 +1690,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^https://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
       },
       validSampleValues: [
@@ -1700,6 +1708,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^[^:]+://[^:/?#]+:8080(?:$|[/?#])',
       },
       validSampleValues: [
@@ -1718,6 +1727,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^[^:]+://example\\.net:8080(?:$|[/?#])',
       },
       validSampleValues: [
@@ -1736,6 +1746,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^[^:]+://example\\.net:8080(?:$|[/?#])',
       },
       validSampleValues: ['https://example.net:8080'],
@@ -1750,6 +1761,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^https://example\\.net(?:$|[/?#])',
       },
       validSampleValues: [
@@ -1768,6 +1780,7 @@ describe('url parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'uri',
+        minLength: 1,
         pattern: '^[^:]+://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
       },
       validSampleValues: [
@@ -1781,12 +1794,18 @@ describe('url parser', () => {
 
 describe('email parser', () => {
   it('should reject null', () => {
-    expect(() => email().parse(null)).to.throws('Invalid email, got null')
+    expect(() => email().parse(null)).to.throws(
+      'Invalid non-empty email, got null',
+    )
   })
-  it('should reject empty string', () => {
-    expect(() => email({ nonEmpty: true }).parse('')).to.throws(
+  it('should reject empty string by default', () => {
+    expect(() => email().parse('')).to.throws(
       'Invalid non-empty email, got empty string',
     )
+  })
+  it('should allow empty string when nonEmpty is false', () => {
+    // TODO set `allowEmpty` field instead of `nonEmpty`
+    expect(email({ nonEmpty: false }).parse('')).to.equals('')
   })
   it('should reject invalid domain', () => {
     expect(() => email().parse('user@example_com')).to.throws(
@@ -1841,7 +1860,7 @@ describe('email parser', () => {
     {
       title: 'basic email',
       parser: email(),
-      jsonSchema: { type: 'string', format: 'email' },
+      jsonSchema: { type: 'string', format: 'email', minLength: 1 },
       validSampleValues: ['user@example.net', 'alice@example.org'],
       invalidSampleValues: [null, '', 'not-an-email', 'user@example'],
     },
@@ -1851,6 +1870,7 @@ describe('email parser', () => {
       jsonSchema: {
         type: 'string',
         format: 'email',
+        minLength: 1,
         pattern: '^[^@]+@example\\.net$',
       },
       validSampleValues: ['user@example.net', 'alice@example.net'],

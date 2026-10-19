@@ -279,6 +279,7 @@ export type UrlOptions = StringOptions & {
   // TODO support IPv6 host / origin; out of scope for now
 }
 export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
+  options.nonEmpty ??= true
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''
@@ -475,6 +476,7 @@ export type EmailOptions = StringOptions & {
 export function email(
   options: EmailOptions & CustomSampleOptions<string> = {},
 ) {
+  options.nonEmpty ??= true
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''

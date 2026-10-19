@@ -559,6 +559,8 @@ type UrlOptions = StringOptions & {
 }
 ```
 
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `nonEmpty: false`.
+
 ## Email
 
 **Example**:
@@ -576,6 +578,8 @@ type EmailOptions = StringOptions & {
   case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
 }
 ```
+
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `nonEmpty: false`.
 
 > The address is kept as submitted unless `case` is set, so the local part is
 > not folded: RFC 5321 section 2.3.4.1 treats it as case-sensitive, although
