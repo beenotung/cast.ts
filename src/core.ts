@@ -21,6 +21,7 @@ export type JsonSchema = AtLeastOneOf<{
   anyOf: JsonSchema[]
   allOf: JsonSchema[]
 }> & {
+  description?: string
   minimum?: number
   maximum?: number
   minLength?: number
@@ -1209,6 +1210,20 @@ export type DateOptions = {
   min?: number | Date | string
   max?: number | Date | string
 }
+// month 1-12 and day 1-31; non-padded input is normalised by parse()
+// e.g. 2022-09-17, 2024-1-2
+const datePattern = '\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])'
+// ISO-like input, with or without a timezone; a missing zone means local time
+// e.g. 2026-10-19T07:16:58.199Z, 2026-10-19T07:16:58, 2026-10-19T07:16:58+08:00
+const dateTimePattern =
+  // e.g. 2026-10-19
+  `^${datePattern}` +
+  // e.g. T07:16 or " 07:16"
+  '(?:[T ](?:[01]?\\d|2[0-3]):[0-5]\\d' +
+  // e.g. :58 or :58.199
+  '(?::[0-5]\\d(?:\\.\\d{1,3})?)?' +
+  // e.g. Z or +08:00
+  '(?:Z|[+-]\\d{2}:?\\d{2})?)?$'
 export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
   let min =
     options.min !== undefined
@@ -1273,10 +1288,30 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    // JSON can only carry the input as a string or a number; parse() converts
+    // either form into a Date. A string without a timezone is read as local
+    // time, matching what `new Date()` does.
+    return {
+      anyOf: [
+        {
+          type: 'string',
+          pattern: dateTimePattern,
+          description:
+            'ISO 8601 date or date-time, e.g. "2026-10-19" or "2026-10-19T07:16:58.199Z"; no timezone means local time',
+        },
+        {
+          type: 'number',
+          description: 'milliseconds since the Unix epoch, e.g. 1663372800000',
+        },
+      ],
+    }
+  }
   return {
     parse,
     options,
     type: 'Date',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultDateSampleProps,
       customProps: options,
@@ -1335,9 +1370,6 @@ export type DateStringOptions = {
   min?: number | Date | string
   max?: number | Date | string
 }
-// month 1-12 and day 1-31; non-padded input is normalised by parse()
-// e.g. 2022-09-17, 2024-1-2
-const datePattern = '\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])'
 /**
  * @description parse date string in format 'yyyy-mm-dd' from Date | string | number
  */

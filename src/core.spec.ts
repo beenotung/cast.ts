@@ -68,6 +68,22 @@ let timePartByPrecision = {
 }
 // e.g. "2022-09-17"
 let expectedDateString = `^${datePart}$`
+// e.g. "2026-10-19T07:16:58.199Z" (JSON.stringify),
+//      "2026-10-19T07:16:58" (local time), "2026-10-19T07:16:58+08:00",
+//      "2026-10-19"
+let expectedDateTime =
+  // e.g. "2026-10-19"
+  `^${datePart}` +
+  // e.g. "T07:16" or " 07:16"
+  '(?:[T ](?:[01]?\\d|2[0-3]):[0-5]\\d' +
+  // e.g. ":58" or ":58.199"
+  '(?::[0-5]\\d(?:\\.\\d{1,3})?)?' +
+  // e.g. "Z" or "+08:00"
+  '(?:Z|[+-]\\d{2}:?\\d{2})?)?$'
+let expectedDateTimeDescription =
+  'ISO 8601 date or date-time, e.g. "2026-10-19" or "2026-10-19T07:16:58.199Z"; no timezone means local time'
+let expectedEpochDescription =
+  'milliseconds since the Unix epoch, e.g. 1663372800000'
 function expectedTimeString(precision: keyof typeof timePartByPrecision) {
   return `^${timePartByPrecision[precision]}$`
 }
@@ -936,6 +952,41 @@ describe('date parser', () => {
       expect(() => date().parse(variant)).to.throw(
         `Invalid date, got string (${JSON.stringify(variant)})`,
       )
+    }
+  })
+  it('should emit json schema for the input, not the Date output', () => {
+    // testJsonSchema cannot be used here: its samples are the parsed values,
+    // and a Date is not a JSON type, while the schema describes the input
+    let schema = getParserJsonSchema(date())
+    expect(schema).to.deep.equals({
+      anyOf: [
+        {
+          type: 'string',
+          pattern: expectedDateTime,
+          description: expectedDateTimeDescription,
+        },
+        { type: 'number', description: expectedEpochDescription },
+      ],
+    })
+    let validate = ajv.compile(schema)
+    let validSampleValues = [
+      '2026-10-19T07:16:58.199Z', // what JSON.stringify(new Date()) produces
+      '2026-10-19T07:16:58', // no timezone: read as local time
+      '2026-10-19T07:16',
+      '2026-10-19',
+      '2026-10-19T07:16:58+08:00',
+      1663372800000,
+    ]
+    for (let value of validSampleValues) {
+      expect(validate(value), `valid: ${inspect(value)}`).to.be.true
+      expect(
+        () => date().parse(value),
+        `parser should accept: ${inspect(value)}`,
+      ).to.not.throw()
+    }
+    let invalidSampleValues = [null, true, [], {}, '17-09-2022', 'now']
+    for (let value of invalidSampleValues) {
+      expect(validate(value), `invalid: ${inspect(value)}`).to.be.false
     }
   })
   testReflection({
