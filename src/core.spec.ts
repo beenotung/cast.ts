@@ -2756,7 +2756,7 @@ function testJsonSchema<T>(
     invalidSampleValues: any[]
   }[],
 ) {
-  describe.only('json schema', () => {
+  describe('json schema', () => {
     for (let option of options) {
       let {
         title,
