@@ -1045,13 +1045,13 @@ describe('dateString parser', () => {
       'Invalid dateString, got undefined',
     )
   })
-  it('should reject empty string', () => {
-    expect(() => dateString({ nonEmpty: true }).parse('')).to.throw(
+  it('should reject empty string by default', () => {
+    expect(() => dateString().parse('')).to.throw(
       'Invalid non-empty dateString, got empty string',
     )
   })
-  it('should allow empty string', () => {
-    expect(dateString({ nonEmpty: false }).parse('')).to.equals('')
+  it('should allow empty string when allowEmpty is true', () => {
+    expect(dateString({ allowEmpty: true }).parse('')).to.equals('')
   })
   it('should accept int timestamp', () => {
     let string = '2023-09-17'
@@ -1100,6 +1100,7 @@ describe('dateString parser', () => {
       getParserJsonSchema(dateString({ min: '2022-01-01', max: '2022-12-31' })),
     ).to.deep.equals({
       type: 'string',
+      minLength: 1,
       pattern: expectedDateString,
       description: 'between "2022-01-01" and "2022-12-31"',
     })
@@ -1116,6 +1117,7 @@ describe('dateString parser', () => {
       parser: dateString(),
       jsonSchema: {
         type: 'string',
+        minLength: 1,
         pattern: expectedDateString,
       },
       validSampleValues: ['2022-09-17', '2024-01-02', '2022-9-7'],
@@ -1146,13 +1148,13 @@ describe('timeString parser', () => {
       'Invalid timeString, got undefined',
     )
   })
-  it('should reject empty string', () => {
-    expect(() => timeString({ nonEmpty: true }).parse('')).to.throw(
+  it('should reject empty string by default', () => {
+    expect(() => timeString().parse('')).to.throw(
       'Invalid non-empty timeString, got empty string',
     )
   })
-  it('should allow empty string', () => {
-    expect(timeString({ nonEmpty: false }).parse('')).to.equals('')
+  it('should allow empty string when allowEmpty is true', () => {
+    expect(timeString({ allowEmpty: true }).parse('')).to.equals('')
   })
   it('should accept int timestamp', () => {
     let string = '2023-09-17 13:45'
@@ -1249,6 +1251,7 @@ describe('timeString parser', () => {
       getParserJsonSchema(timeString({ min: '13:00', max: '14:00' })),
     ).to.deep.equals({
       type: 'string',
+      minLength: 1,
       pattern: expectedTimeString('minute'),
       description: 'between "13:00" and "14:00"',
     })
@@ -1265,6 +1268,7 @@ describe('timeString parser', () => {
       parser: timeString(),
       jsonSchema: {
         type: 'string',
+        minLength: 1,
         pattern: expectedTimeString('minute'),
       },
       validSampleValues: ['13:45', '9:05'],
@@ -1275,6 +1279,7 @@ describe('timeString parser', () => {
       parser: timeString({ precision: 'second' }),
       jsonSchema: {
         type: 'string',
+        minLength: 1,
         pattern: expectedTimeString('second'),
       },
       validSampleValues: ['13:45:00', '9:05:07'],
@@ -1285,6 +1290,7 @@ describe('timeString parser', () => {
       parser: timeString({ precision: 'millisecond' }),
       jsonSchema: {
         type: 'string',
+        minLength: 1,
         pattern: expectedTimeString('millisecond'),
       },
       validSampleValues: ['13:45:00.123', '13:45:00.5'],
@@ -1315,13 +1321,13 @@ describe('timestamp parser', () => {
       'Invalid timestamp, got undefined',
     )
   })
-  it('should reject empty string', () => {
-    expect(() => timestamp({ nonEmpty: true }).parse('')).to.throw(
+  it('should reject empty string by default', () => {
+    expect(() => timestamp().parse('')).to.throw(
       'Invalid non-empty timestamp, got empty string',
     )
   })
-  it('should allow empty string', () => {
-    expect(timestamp({ nonEmpty: false }).parse('')).to.equals('')
+  it('should allow empty string when allowEmpty is true', () => {
+    expect(timestamp({ allowEmpty: true }).parse('')).to.equals('')
   })
   it('should accept int timestamp', () => {
     let string = '2023-09-17 13:45:00'
@@ -1400,6 +1406,7 @@ describe('timestamp parser', () => {
       parser: timestamp(),
       jsonSchema: {
         type: 'string',
+        minLength: 1,
         pattern: expectedTimestamp('second'),
       },
       validSampleValues: ['2022-09-17 13:45:00'],
@@ -1417,6 +1424,7 @@ describe('timestamp parser', () => {
       parser: timestamp({ precision: 'minute' }),
       jsonSchema: {
         type: 'string',
+        minLength: 1,
         pattern: expectedTimestamp('minute'),
       },
       validSampleValues: ['2022-09-17 13:45'],
@@ -1427,6 +1435,7 @@ describe('timestamp parser', () => {
       parser: timestamp({ precision: 'millisecond' }),
       jsonSchema: {
         type: 'string',
+        minLength: 1,
         pattern: expectedTimestamp('millisecond'),
       },
       validSampleValues: ['2022-09-17 13:45:00.123'],
@@ -1456,6 +1465,7 @@ describe('timestamp parser', () => {
     )
     expect(schema).to.deep.equals({
       type: 'string',
+      minLength: 1,
       pattern: expectedTimestamp('second'),
       description: 'between "2022-01-01 00:00:00" and "2022-12-31 23:59:59"',
     })

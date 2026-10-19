@@ -494,10 +494,13 @@ let untilDate = date({
 ```typescript
 type DateStringOptions = {
   nonEmpty?: boolean
+  allowEmpty?: boolean // alias for nonEmpty with opposite meaning; takes precedence when both are set
   min?: number | Date | string
   max?: number | Date | string
 }
 ```
+
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `allowEmpty: true` (or `nonEmpty: false`).
 
 # TimeString
 
@@ -521,10 +524,13 @@ let untilTime = time({
 ```typescript
 type TimeStringOptions = {
   nonEmpty?: boolean
+  allowEmpty?: boolean // alias for nonEmpty with opposite meaning; takes precedence when both are set
   min?: number | Date | string
   max?: number | Date | string
 }
 ```
+
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `allowEmpty: true` (or `nonEmpty: false`).
 
 ## Url
 

@@ -1415,6 +1415,8 @@ function parseDateInString(
 
 export type DateStringOptions = {
   nonEmpty?: boolean
+  /** alias for `nonEmpty` with opposite meaning; takes precedence when both are set */
+  allowEmpty?: boolean
   min?: number | Date | string
   max?: number | Date | string
 }
@@ -1424,6 +1426,8 @@ export type DateStringOptions = {
 export function dateString(
   options: DateStringOptions & CustomSampleOptions<string> = {},
 ) {
+  normalizeEmptyFlags(options)
+  options.nonEmpty ??= true
   let min =
     options.min !== undefined
       ? parseDateString(
@@ -1591,6 +1595,8 @@ export function d3(number: number): string | number {
 export type TimePrecision = 'minute' | 'second' | 'millisecond'
 export type TimeStringOptions = {
   nonEmpty?: boolean
+  /** alias for `nonEmpty` with opposite meaning; takes precedence when both are set */
+  allowEmpty?: boolean
   min?: number | Date | string
   max?: number | Date | string
   /** @description default 'minute' */
@@ -1610,6 +1616,8 @@ const timePatternByPrecision: Record<TimePrecision, string> = {
 export function timeString(
   options: TimeStringOptions & CustomSampleOptions<string> = {},
 ) {
+  normalizeEmptyFlags(options)
+  options.nonEmpty ??= true
   let min =
     options.min !== undefined
       ? parseTimeString(
@@ -1805,6 +1813,8 @@ export function toTimeString(date: Date): string {
 export type TimestampPrecision = TimePrecision
 export type TimestampOptions = {
   nonEmpty?: boolean
+  /** alias for `nonEmpty` with opposite meaning; takes precedence when both are set */
+  allowEmpty?: boolean
   min?: number | Date | string
   max?: number | Date | string
   /** @description default 'second' */
@@ -1824,6 +1834,8 @@ const timestampPatternByPrecision: Record<TimestampPrecision, string> = {
 export function timestamp(
   options: TimestampOptions & CustomSampleOptions<string> = {},
 ) {
+  normalizeEmptyFlags(options)
+  options.nonEmpty ??= true
   let precision = options.precision || 'second'
   let min =
     options.min !== undefined
