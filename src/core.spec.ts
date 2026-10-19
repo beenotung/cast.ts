@@ -859,7 +859,11 @@ describe('object parser', () => {
         required: ['name', 'age'],
       },
       validSampleValues: [{ name: 'alice', age: 30 }],
-      invalidSampleValues: [{ name: 'alice' }, { age: 30 }, { name: 1, age: 30 }],
+      invalidSampleValues: [
+        { name: 'alice' },
+        { age: 30 },
+        { name: 1, age: 30 },
+      ],
     },
     {
       title: 'object with optional field',
