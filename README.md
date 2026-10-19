@@ -23,6 +23,7 @@ Inspired by [Zod](https://github.com/colinhacks/zod) and [tRPC](https://github.c
 - Explicit type conversion
 - Right-to-the-point error message
 - Static type inference
+- JSON Schema export for Ajv, OpenAPI, and LLM tool parameters
 - Composable: builder functions (i.e. `optional()`) return new parser instance
 - Convenience: support auto-infer parser from from sample value
 - Safe: [Parse, don't type-check](https://news.ycombinator.com/item?id=25220139)
@@ -406,6 +407,24 @@ The checkbox parser doesn't take additional options
 let primary_color = color().parse(req.body.primary_color)
 ```
 
+Supported formats:
+
+- hex: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` (case-insensitive)
+- classic syntax: `rgb(r, g, b)`, `rgba(r, g, b, a)`
+- modern syntax: `rgb(r g b)`, `rgb(r g b / a)`, `rgba(r g b / a)`
+
+Channels are `0`-`255` or `0%`-`100%`, and alpha is `0`-`1` or `0%`-`100%`.
+`rgb()` and `rgba()` are aliases, so both accept 3 or 4 arguments.
+
+Out-of-range values are rejected even though CSS clamps them, so that a typo
+like `rgb(256, 0, 0)` fails early instead of being silently clamped.
+
+The parser returns the input unchanged - it does not normalise, shorten or
+convert between hex and `rgb()`.
+
+Named colours (e.g. `red`) and CSS functions other than `rgb()`/`rgba()`
+(e.g. `hsl()`) are not supported.
+
 The color parser doesn't take additional options
 
 ## Object
@@ -513,17 +532,34 @@ type TimeStringOptions = {
 ```typescript
 // blogUrl is a string of hyperlink
 let blogUrl = url({ protocols: ['https', 'http'] }).parse(req.body.blogUrl)
+
+// hostname only (port on the URL may vary)
+url({ domain: 'localhost' }).parse('http://localhost:3000')
+
+// fixed port
+url({ port: 8080 }).parse('http://localhost:8080')
+
+// host segment after '://' (e.g. 'localhost' or 'localhost:8080')
+url({ host: 'localhost:8080' }).parse('http://localhost:8080/profile')
+
+// scheme + host (like URL.origin); path, query, and hash may follow
+url({ origin: 'https://example.net' }).parse('https://example.net/profile')
 ```
 
 **Options of url parser**:
 
 ```typescript
 type UrlOptions = StringOptions & {
-  domain?: string
+  domain?: string // hostname only (e.g. 'example.net')
+  port?: number | string
+  host?: string // hostname, or 'hostname:port'
+  origin?: string // e.g. 'https://example.net' or 'https://localhost:8080'
   protocol?: string
   protocols?: string[]
 }
 ```
+
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `nonEmpty: false`.
 
 ## Email
 
@@ -534,14 +570,21 @@ type UrlOptions = StringOptions & {
 let userEmail = email().parse(req.body.email)
 ```
 
-**Options of url parser**:
+**Options of email parser**:
 
 ```typescript
 type EmailOptions = StringOptions & {
   domain?: string
-  case?: 'lower' | 'upper' | 'unchanged' // default 'lower'
+  case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
 }
 ```
+
+> `nonEmpty` defaults to `true`: an empty string is rejected unless explicitly allowed with `nonEmpty: false`.
+
+> The address is kept as submitted unless `case` is set, so the local part is
+> not folded: RFC 5321 section 2.3.4.1 treats it as case-sensitive, although
+> most providers match it case-insensitively in practice. Use `case: 'lower'`
+> if you need a normalized value for identity matching.
 
 ## Literal
 
@@ -600,6 +643,7 @@ let item_ids = array(string(), { maybeSingle: true }).parse(req.query.item_id)
 
 ```typescript
 type ArrayOptions = {
+  length?: number // exactly this many items; shortcut for minLength = maxLength
   minLength?: number
   maxLength?: number
   maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)
@@ -765,6 +809,53 @@ function dict<K extends PropertyKey, V>(
 // alias
 let record = dict
 ```
+
+## JSON Schema
+
+Every parser exposes a `jsonSchema` getter, so a composed parser tree can drive
+Ajv validation, an OpenAPI document, or LLM tool parameters.
+
+**Example**:
+
+```typescript
+import { object, string, int, array } from 'cast.ts'
+
+let userParser = object({
+  name: string({ minLength: 1 }),
+  age: int({ min: 0 }),
+  tags: array(string()),
+})
+
+console.log(userParser.jsonSchema)
+// {
+//   type: 'object',
+//   properties: {
+//     name: { type: 'string', minLength: 1 },
+//     age: { type: 'integer', minimum: 0 },
+//     tags: { type: 'array', items: { type: 'string' } },
+//   },
+//   required: ['name', 'age', 'tags'],
+// }
+```
+
+**Supported keywords**: `description`, `type`, `const`, `enum`, `anyOf`,
+`allOf`, `properties`, `required`, `propertyNames`, `additionalProperties`,
+`items`, `minItems`, `maxItems`, `minimum`, `maximum`, `minLength`,
+`maxLength`, `pattern`, `format`.
+
+The output is portable JSON Schema: no Ajv-specific keywords are used, so it
+works with `strict` mode and plain tooling.
+
+**Limitations**:
+
+- `date()` describes its input, because it returns a `Date`: `anyOf` of an
+  ISO-like string (`2026-10-19T07:16:58.199Z`, or without a timezone for local
+  time) and epoch milliseconds (`1663372800000`).
+- `timestamp()`, `dateString()`, `timeString()` and `date()` cannot enforce
+  `min`/`max`: JSON Schema has no portable string-range keyword, so the bounds
+  are recorded in `description` and still enforced by `parse()`.
+- `dict()` with a numeric key parser approximates the keys with `propertyNames`,
+  since JSON object keys are always strings.
 
 ## Acknowledgments
 

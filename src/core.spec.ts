@@ -1,3 +1,4 @@
+import { inspect } from 'util'
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 import { genTsType } from 'gen-ts-type'
@@ -7,6 +8,7 @@ import {
   boolean,
   checkbox,
   color,
+  colorRegex,
   d2,
   d3,
   date,
@@ -15,9 +17,11 @@ import {
   email,
   enums,
   float,
+  getParserJsonSchema,
   id,
   inferFromSampleValue,
   int,
+  JsonSchema,
   literal,
   nullable,
   number,
@@ -25,6 +29,7 @@ import {
   optional,
   or,
   Parser,
+  ParserContext,
   ParseResult,
   record,
   singletonArray,
@@ -35,6 +40,8 @@ import {
   url,
   values,
 } from './core'
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
 
 let mockSampleValue: any = 'mock-sample'
 let mockRandomSample = function (): any {
@@ -43,6 +50,45 @@ let mockRandomSample = function (): any {
 let mockCustomSampleProps = {
   sampleValue: mockSampleValue,
   randomSample: mockRandomSample,
+}
+
+let ajv = new Ajv({ strict: true, allErrors: true })
+addFormats(ajv)
+
+// expected date/time patterns, spelled out once so the fixtures stay readable
+// datePart: 2022-09-17, 2024-1-2 (non-padded input is normalised by parse())
+let datePart = '\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])'
+let timePartByPrecision = {
+  // e.g. "13:45" or "9:05"
+  minute: '(?:[01]?\\d|2[0-3]):[0-5]\\d',
+  // e.g. "13:45:00"
+  second: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d',
+  // e.g. "13:45:00.123" or "13:45:00.5" (padded by parse)
+  millisecond: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{1,3}',
+}
+// e.g. "2022-09-17"
+let expectedDateString = `^${datePart}$`
+// e.g. "2026-10-19T07:16:58.199Z" (JSON.stringify),
+//      "2026-10-19T07:16:58" (local time), "2026-10-19T07:16:58+08:00",
+//      "2026-10-19"
+let expectedDateTime =
+  // e.g. "2026-10-19"
+  `^${datePart}` +
+  // e.g. "T07:16" or " 07:16"
+  '(?:[T ](?:[01]?\\d|2[0-3]):[0-5]\\d' +
+  // e.g. ":58" or ":58.199"
+  '(?::[0-5]\\d(?:\\.\\d{1,3})?)?' +
+  // e.g. "Z" or "+08:00"
+  '(?:Z|[+-]\\d{2}:?\\d{2})?)?$'
+let expectedDateTimeDescription =
+  'ISO 8601 date or date-time, e.g. "2026-10-19" or "2026-10-19T07:16:58.199Z"; no timezone means local time'
+let expectedEpochDescription =
+  'milliseconds since the Unix epoch, e.g. 1663372800000'
+function expectedTimeString(precision: keyof typeof timePartByPrecision) {
+  return `^${timePartByPrecision[precision]}$`
+}
+function expectedTimestamp(precision: keyof typeof timePartByPrecision) {
+  return `^${datePart} ${timePartByPrecision[precision]}$`
 }
 
 describe('string parser', () => {
@@ -109,6 +155,36 @@ describe('string parser', () => {
     sampleValue: 'text',
     customSample: () => string(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic string',
+      parser: string(),
+      jsonSchema: { type: 'string' },
+      validSampleValues: ['text', ''],
+      invalidSampleValues: [null, NaN, 123, 3.14],
+    },
+    {
+      title: 'non-empty string',
+      parser: string({ nonEmpty: true }),
+      jsonSchema: { type: 'string', minLength: 1 },
+      validSampleValues: ['text'],
+      invalidSampleValues: [''],
+    },
+    {
+      title: 'length limited string',
+      parser: string({ minLength: 3, maxLength: 5 }),
+      jsonSchema: { type: 'string', minLength: 3, maxLength: 5 },
+      validSampleValues: ['ice', 'cake', 'text', 'water'],
+      invalidSampleValues: ['an', 'bucket'],
+    },
+    {
+      title: 'string with regex',
+      parser: string({ match: /^[a-z]+$/ }),
+      jsonSchema: { type: 'string', pattern: '^[a-z]+$' },
+      validSampleValues: ['text', 'cake'],
+      invalidSampleValues: ['123', '42', 'Alice'],
+    },
+  ])
 })
 
 describe('number parser', () => {
@@ -182,6 +258,43 @@ describe('number parser', () => {
     sampleValue: 3.14,
     customSample: () => number(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic number',
+      parser: number(),
+      jsonSchema: { type: 'number' },
+      validSampleValues: [0, 1, 2, 3.14, -42],
+      invalidSampleValues: [null, NaN, ''],
+    },
+    {
+      title: 'number with min value',
+      parser: number({ min: 10 }),
+      jsonSchema: { type: 'number', minimum: 10 },
+      validSampleValues: [10, 11],
+      invalidSampleValues: [9],
+    },
+    {
+      title: 'number with max value',
+      parser: number({ max: 100 }),
+      jsonSchema: { type: 'number', maximum: 100 },
+      validSampleValues: [99, 100],
+      invalidSampleValues: [101],
+    },
+    {
+      title: 'number within range',
+      parser: number({ min: 10, max: 100 }),
+      jsonSchema: { type: 'number', minimum: 10, maximum: 100 },
+      validSampleValues: [10, 11, 99, 100],
+      invalidSampleValues: [9, 101],
+    },
+    {
+      title: 'number with zero bound',
+      parser: number({ min: 0, max: 0 }),
+      jsonSchema: { type: 'number', minimum: 0, maximum: 0 },
+      validSampleValues: [0],
+      invalidSampleValues: [-1, 1],
+    },
+  ])
 })
 
 describe('int parser', () => {
@@ -208,6 +321,22 @@ describe('int parser', () => {
     sampleValue: 42,
     customSample: () => int(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic int',
+      parser: int(),
+      jsonSchema: { type: 'integer' },
+      validSampleValues: [0, 1, -42, 100],
+      invalidSampleValues: [null, NaN, 4.2, ''],
+    },
+    {
+      title: 'int within range',
+      parser: int({ min: 0, max: 100 }),
+      jsonSchema: { type: 'integer', minimum: 0, maximum: 100 },
+      validSampleValues: [0, 50, 100],
+      invalidSampleValues: [-1, 101, 0.5],
+    },
+  ])
 })
 
 describe('float parser', () => {
@@ -227,6 +356,29 @@ describe('float parser', () => {
     sampleValue: 3.14,
     customSample: () => float(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic float',
+      parser: float(),
+      jsonSchema: { type: 'number' },
+      validSampleValues: [0, 3.14, -4.2],
+      invalidSampleValues: [null, NaN, ''],
+    },
+    {
+      title: 'float within range',
+      parser: float({ min: 0, max: 1 }),
+      jsonSchema: { type: 'number', minimum: 0, maximum: 1 },
+      validSampleValues: [0, 0.5, 1],
+      invalidSampleValues: [-0.1, 1.1],
+    },
+    {
+      title: 'float with rounding options',
+      parser: float({ toFixed: 2 }),
+      jsonSchema: { type: 'number' },
+      validSampleValues: [3.1415, -4.2],
+      invalidSampleValues: [null, NaN, ''],
+    },
+  ])
 })
 
 describe('boolean parser', () => {
@@ -296,6 +448,29 @@ describe('boolean parser', () => {
     randomSamples: [true, false],
     customSample: false,
   })
+  testJsonSchema([
+    {
+      title: 'boolean',
+      parser: boolean(),
+      jsonSchema: { type: 'boolean' },
+      validSampleValues: [true, false],
+      invalidSampleValues: [null, '', 'true', 0, 1],
+    },
+    {
+      title: 'boolean expecting true',
+      parser: boolean(true),
+      jsonSchema: { type: 'boolean', const: true },
+      validSampleValues: [true],
+      invalidSampleValues: [false],
+    },
+    {
+      title: 'boolean expecting false',
+      parser: boolean(false),
+      jsonSchema: { type: 'boolean', const: false },
+      validSampleValues: [false],
+      invalidSampleValues: [true],
+    },
+  ])
 })
 
 describe('checkbox parser', () => {
@@ -317,21 +492,104 @@ describe('checkbox parser', () => {
     randomSamples: [true, false],
     customSample: () => checkbox(mockCustomSampleProps),
   })
+  it('should accept boolean values', () => {
+    expect(checkbox().parse(true)).to.equals(true)
+    expect(checkbox().parse(false)).to.equals(false)
+  })
+  testJsonSchema([
+    {
+      title: 'checkbox',
+      parser: checkbox(),
+      jsonSchema: { type: 'boolean' },
+      validSampleValues: [true, false],
+      invalidSampleValues: [null, '', 'on', 1],
+    },
+  ])
 })
 
 describe('color parser', () => {
-  it('should parse rgb hex code', () => {
-    expect(color().parse('#123456')).to.be.equals('#123456')
-    expect(color().parse('#ffffff')).to.be.equals('#ffffff')
-    expect(color().parse('#FFFFFF')).to.be.equals('#FFFFFF')
+  describe('hex color', () => {
+    it('should parse #rrggbb', () => {
+      expect(color().parse('#123456')).to.be.equals('#123456')
+      expect(color().parse('#ffffff')).to.be.equals('#ffffff')
+      expect(color().parse('#FFFFFF')).to.be.equals('#FFFFFF')
+    })
+    it('should parse #rgb shorthand', () => {
+      expect(color().parse('#abc')).to.be.equals('#abc')
+    })
+    it('should parse #rgba shorthand with alpha', () => {
+      expect(color().parse('#ABCD')).to.be.equals('#ABCD')
+    })
+    it('should parse #rrggbbaa with alpha', () => {
+      expect(color().parse('#12345678')).to.be.equals('#12345678')
+    })
   })
-  it('should reject invalid format', () => {
-    expect(() => color().parse('')).to.be.throws(
-      'Invalid color, got empty string',
-    )
-    expect(() => color().parse('#rrggbb')).to.be.throws(
-      'Invalid color, should be in "#rrggbb" hexadecimal format',
-    )
+  describe('rgb() and rgba()', () => {
+    it('should parse classic comma syntax', () => {
+      for (let value of [
+        'rgb(255, 0, 0)',
+        'rgba(255,0,0,0.5)',
+        'rgb(255, 0, 0, 0.5)', // rgb and rgba are aliases
+        'rgba(255, 0, 0)',
+        'rgba(12, 32, 54, 50%)', // alpha as a percentage
+        'rgb(100%, 0%, 50%)',
+      ]) {
+        expect(color().parse(value)).to.be.equals(value)
+      }
+    })
+    it('should parse modern space syntax', () => {
+      for (let value of [
+        'rgb(12 32 54)',
+        'rgb(12 32 54 / 0.5)',
+        'rgb(12 32 54 / 50%)',
+        'rgba(12 32 54 / 0.5)',
+        'rgb(50% 50% 50%)',
+        'RGB(10 20 30)', // case-insensitive
+      ]) {
+        expect(color().parse(value)).to.be.equals(value)
+      }
+    })
+  })
+  describe('invalid format', () => {
+    let message =
+      'Invalid color, should be a hex color (#rgb, #rgba, #rrggbb, #rrggbbaa) or rgb()/rgba()'
+    it('should reject empty string', () => {
+      expect(() => color().parse('')).to.be.throws(
+        'Invalid color, got empty string',
+      )
+    })
+    it('should reject non-hex digits', () => {
+      expect(() => color().parse('#rrggbb')).to.be.throws(message)
+    })
+    it('should reject wrong hex length', () => {
+      // 5 and 7 digits are neither shorthand nor full hex
+      expect(() => color().parse('#12345')).to.be.throws(message)
+      expect(() => color().parse('#1234567')).to.be.throws(message)
+    })
+    it('should reject a channel above 255', () => {
+      expect(() => color().parse('rgb(256, 0, 0)')).to.be.throws(message)
+      expect(() => color().parse('rgb(256 0 0)')).to.be.throws(message)
+    })
+    it('should reject an alpha above 1', () => {
+      expect(() => color().parse('rgba(0,0,0,2)')).to.be.throws(message)
+      expect(() => color().parse('rgb(12 32 54 / 1.5)')).to.be.throws(message)
+    })
+    it('should reject a percentage above 100%', () => {
+      expect(() => color().parse('rgb(101%, 0%, 0%)')).to.be.throws(message)
+    })
+    it('should reject a missing channel', () => {
+      expect(() => color().parse('rgb(12 32)')).to.be.throws(message)
+      expect(() => color().parse('rgb(12, 32)')).to.be.throws(message)
+    })
+    it('should reject mixed comma and space syntax', () => {
+      expect(() => color().parse('rgb(12, 32, 54 / 0.5)')).to.be.throws(message)
+    })
+    it('should reject named colors', () => {
+      expect(() => color().parse('red')).to.be.throws(message)
+    })
+    it('should reject hsl()', () => {
+      expect(() => color().parse('hsl(0 0% 0%)')).to.be.throws(message)
+    })
   })
   testReflection({
     parser: color(),
@@ -339,6 +597,36 @@ describe('color parser', () => {
     sampleValue: '#c0ffee',
     customSample: () => color(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'color',
+      parser: color(),
+      // the pattern comes straight from `colorRegex`, so schema and parser
+      // share one source of truth
+      jsonSchema: { type: 'string', pattern: colorRegex.source },
+      validSampleValues: [
+        '#123456',
+        '#fff',
+        '#12345678',
+        'rgb(255, 0, 0)',
+        'rgba(0,0,0,0.5)',
+        'rgb(12 32 54)',
+        'rgb(12 32 54 / 50%)',
+      ],
+      invalidSampleValues: [
+        null,
+        '',
+        '#rrggbb',
+        '#12345',
+        '#1234567',
+        'rgb(256,0,0)',
+        'rgba(0,0,0,2)',
+        'rgb(12 32)',
+        'red',
+        'hsl(0 0% 0%)',
+      ],
+    },
+  ])
 })
 
 describe('object parser', () => {
@@ -450,6 +738,21 @@ describe('object parser', () => {
       username: 'alice',
     })
   })
+  it('should allow optional field to be empty string', () => {
+    expect(
+      object({
+        username: string(),
+        nickname: optional(string()),
+        profile_url: optional(url()),
+      }).parse({
+        username: 'alice',
+        nickname: '',
+        profile_url: '',
+      }),
+    ).to.deep.equals({
+      username: 'alice',
+    })
+  })
   it('should allow providing optional field', () => {
     expect(
       object({
@@ -539,6 +842,71 @@ describe('object parser', () => {
       expect(type).includes("'max-char': number")
     })
   })
+  testJsonSchema([
+    {
+      title: 'empty object',
+      parser: object({}),
+      jsonSchema: { type: 'object', properties: {} },
+      validSampleValues: [{}],
+      invalidSampleValues: [null, [], 'text', 1],
+    },
+    {
+      title: 'object with required fields',
+      parser: object({ name: string(), age: number() }),
+      jsonSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' }, age: { type: 'number' } },
+        required: ['name', 'age'],
+      },
+      validSampleValues: [{ name: 'alice', age: 30 }],
+      invalidSampleValues: [
+        { name: 'alice' },
+        { age: 30 },
+        { name: 1, age: 30 },
+      ],
+    },
+    {
+      title: 'object with optional field',
+      parser: object({ name: string(), nickname: optional(string()) }),
+      jsonSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' }, nickname: { type: 'string' } },
+        required: ['name'],
+      },
+      validSampleValues: [
+        { name: 'alice' },
+        { name: 'alice', nickname: 'ally' },
+      ],
+      invalidSampleValues: [{}, { nickname: 'ally' }, { name: 1 }],
+    },
+    {
+      title: 'object with checkbox field',
+      parser: object({ active: checkbox() }),
+      jsonSchema: {
+        type: 'object',
+        properties: { active: { type: 'boolean' } },
+      },
+      validSampleValues: [{}, { active: true }, { active: false }],
+      invalidSampleValues: [{ active: 'yes' }],
+    },
+    {
+      title: 'nested object',
+      parser: object({ user: object({ name: string() }) }),
+      jsonSchema: {
+        type: 'object',
+        properties: {
+          user: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+        },
+        required: ['user'],
+      },
+      validSampleValues: [{ user: { name: 'alice' } }],
+      invalidSampleValues: [{ user: {} }, { user: { name: 1 } }, {}],
+    },
+  ])
 })
 
 describe('date parser', () => {
@@ -604,6 +972,56 @@ describe('date parser', () => {
         `Invalid date, got string (${JSON.stringify(variant)})`,
       )
     }
+  })
+  it('should emit json schema for the input, not the Date output', () => {
+    // testJsonSchema cannot be used here: its samples are the parsed values,
+    // and a Date is not a JSON type, while the schema describes the input
+    let schema = getParserJsonSchema(date())
+    expect(schema).to.deep.equals({
+      anyOf: [
+        {
+          type: 'string',
+          pattern: expectedDateTime,
+          description: expectedDateTimeDescription,
+        },
+        { type: 'number', description: expectedEpochDescription },
+      ],
+    })
+    let validate = ajv.compile(schema)
+    let validSampleValues = [
+      '2026-10-19T07:16:58.199Z', // what JSON.stringify(new Date()) produces
+      '2026-10-19T07:16:58', // no timezone: read as local time
+      '2026-10-19T07:16',
+      '2026-10-19',
+      '2026-10-19T07:16:58+08:00',
+      1663372800000,
+    ]
+    for (let value of validSampleValues) {
+      expect(validate(value), `valid: ${inspect(value)}`).to.be.true
+      expect(
+        () => date().parse(value),
+        `parser should accept: ${inspect(value)}`,
+      ).to.not.throw()
+    }
+    let invalidSampleValues = [null, true, [], {}, '17-09-2022', 'now']
+    for (let value of invalidSampleValues) {
+      expect(validate(value), `invalid: ${inspect(value)}`).to.be.false
+    }
+  })
+  it('should describe min/max without encoding them', () => {
+    expect(
+      getParserJsonSchema(date({ min: '2022-01-01', max: '2022-12-31' })),
+    ).to.deep.equals({
+      anyOf: [
+        {
+          type: 'string',
+          pattern: expectedDateTime,
+          description: expectedDateTimeDescription,
+        },
+        { type: 'number', description: expectedEpochDescription },
+      ],
+      description: 'between "2022-01-01" and "2022-12-31"',
+    })
   })
   testReflection({
     parser: date(),
@@ -674,12 +1092,44 @@ describe('dateString parser', () => {
       }).parse('2022-09-17'),
     ).to.deep.equals('2022-09-17')
   })
+  it('should describe min/max without encoding them', () => {
+    expect(
+      getParserJsonSchema(dateString({ min: '2022-01-01', max: '2022-12-31' })),
+    ).to.deep.equals({
+      type: 'string',
+      pattern: expectedDateString,
+      description: 'between "2022-01-01" and "2022-12-31"',
+    })
+  })
   testReflection({
     parser: dateString(),
     type: 'string',
     sampleValue: '2022-09-17',
     customSample: () => dateString(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'date string',
+      parser: dateString(),
+      jsonSchema: {
+        type: 'string',
+        pattern: expectedDateString,
+      },
+      validSampleValues: ['2022-09-17', '2024-01-02', '2022-9-7'],
+      invalidSampleValues: ['2022-13-01', '2022-09-32', '17-09-2022', 'text'],
+    },
+    {
+      title: 'non-empty date string',
+      parser: dateString({ nonEmpty: true }),
+      jsonSchema: {
+        type: 'string',
+        minLength: 1,
+        pattern: expectedDateString,
+      },
+      validSampleValues: ['2022-09-17'],
+      invalidSampleValues: [''],
+    },
+  ])
 })
 
 describe('timeString parser', () => {
@@ -791,12 +1241,64 @@ describe('timeString parser', () => {
       ).to.equals('13:45')
     })
   })
+  it('should describe min/max without encoding them', () => {
+    expect(
+      getParserJsonSchema(timeString({ min: '13:00', max: '14:00' })),
+    ).to.deep.equals({
+      type: 'string',
+      pattern: expectedTimeString('minute'),
+      description: 'between "13:00" and "14:00"',
+    })
+  })
   testReflection({
     parser: timeString(),
     type: 'string',
     sampleValue: '13:45',
     customSample: () => timeString(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'time string in minute precision',
+      parser: timeString(),
+      jsonSchema: {
+        type: 'string',
+        pattern: expectedTimeString('minute'),
+      },
+      validSampleValues: ['13:45', '9:05'],
+      invalidSampleValues: ['24:00', '13:60', '13:45:00'],
+    },
+    {
+      title: 'time string in second precision',
+      parser: timeString({ precision: 'second' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: expectedTimeString('second'),
+      },
+      validSampleValues: ['13:45:00', '9:05:07'],
+      invalidSampleValues: ['13:45', '13:45:60', '24:00:00'],
+    },
+    {
+      title: 'time string in millisecond precision',
+      parser: timeString({ precision: 'millisecond' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: expectedTimeString('millisecond'),
+      },
+      validSampleValues: ['13:45:00.123', '13:45:00.5'],
+      invalidSampleValues: ['13:45:00', '25:00:00.000', '13:45:60.000'],
+    },
+    {
+      title: 'non-empty time string',
+      parser: timeString({ nonEmpty: true }),
+      jsonSchema: {
+        type: 'string',
+        minLength: 1,
+        pattern: expectedTimeString('minute'),
+      },
+      validSampleValues: ['13:45'],
+      invalidSampleValues: [''],
+    },
+  ])
 })
 
 describe('timestamp parser', () => {
@@ -889,16 +1391,92 @@ describe('timestamp parser', () => {
     sampleValue: '2022-09-17 13:45:00',
     customSample: () => timestamp(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic timestamp',
+      parser: timestamp(),
+      jsonSchema: {
+        type: 'string',
+        pattern: expectedTimestamp('second'),
+      },
+      validSampleValues: ['2022-09-17 13:45:00'],
+      invalidSampleValues: [
+        null,
+        '',
+        '2022-09-17',
+        '2022-09-17 13:45',
+        '2022-13-01 13:45:00',
+        '2022-09-17 24:00:00',
+      ],
+    },
+    {
+      title: 'timestamp with minute precision',
+      parser: timestamp({ precision: 'minute' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: expectedTimestamp('minute'),
+      },
+      validSampleValues: ['2022-09-17 13:45'],
+      invalidSampleValues: ['2022-09-17 13:45:00'],
+    },
+    {
+      title: 'timestamp with millisecond precision',
+      parser: timestamp({ precision: 'millisecond' }),
+      jsonSchema: {
+        type: 'string',
+        pattern: expectedTimestamp('millisecond'),
+      },
+      validSampleValues: ['2022-09-17 13:45:00.123'],
+      invalidSampleValues: ['2022-09-17 13:45:00'],
+    },
+    {
+      title: 'non-empty timestamp',
+      parser: timestamp({ nonEmpty: true }),
+      jsonSchema: {
+        type: 'string',
+        minLength: 1,
+        pattern: expectedTimestamp('second'),
+      },
+      validSampleValues: ['2022-09-17 13:45:00'],
+      invalidSampleValues: [''],
+    },
+  ])
+  it('should describe min/max without encoding them', () => {
+    // JSON Schema has no portable string-range keyword: minimum/maximum are
+    // number-only, so the bounds are documented as an annotation and stay
+    // enforced by parse()
+    let schema = getParserJsonSchema(
+      timestamp({
+        min: '2022-01-01 00:00:00',
+        max: '2022-12-31 23:59:59',
+      }),
+    )
+    expect(schema).to.deep.equals({
+      type: 'string',
+      pattern: expectedTimestamp('second'),
+      description: 'between "2022-01-01 00:00:00" and "2022-12-31 23:59:59"',
+    })
+    expect(
+      getParserJsonSchema(timestamp({ min: '2022-01-01 00:00:00' })),
+    ).to.have.property('description', 'at least "2022-01-01 00:00:00"')
+    expect(
+      getParserJsonSchema(timestamp({ max: '2022-12-31 23:59:59' })),
+    ).to.have.property('description', 'at most "2022-12-31 23:59:59"')
+  })
 })
 
 describe('url parser', () => {
   it('should reject null', () => {
-    expect(() => url().parse(null)).to.throws('Invalid url, got null')
+    expect(() => url().parse(null)).to.throws('Invalid non-empty url, got null')
   })
-  it('should reject empty string', () => {
-    expect(() => url({ nonEmpty: true }).parse('')).to.throws(
+  it('should reject empty string by default', () => {
+    expect(() => url().parse('')).to.throws(
       'Invalid non-empty url, got empty string',
     )
+  })
+  it('should allow empty string when nonEmpty is false', () => {
+    // TODO set `allowEmpty` field instead of `nonEmpty`
+    expect(url({ nonEmpty: false }).parse('')).to.equals('')
   })
   it('should reject wrong protocol', () => {
     expect(() =>
@@ -911,11 +1489,16 @@ describe('url parser', () => {
     ).to.throws('Invalid url, domain should be "example.net"')
   })
   it('should pass valid url', () => {
+    let value = 'https://example.net/search?query=value&page=1#results'
     expect(
-      url({ protocol: 'https', domain: 'example.net' }).parse(
-        'https://example.net/home',
-      ),
-    ).to.equals('https://example.net/home')
+      url({ protocol: 'https', domain: 'example.net' }).parse(value),
+    ).to.equals(value)
+  })
+  it('should pass url with query but without path', () => {
+    let value = 'https://example.net?query=value&page=1#results'
+    expect(
+      url({ protocol: 'https', domain: 'example.net' }).parse(value),
+    ).to.equals(value)
   })
   it('should check multiple protocols', () => {
     expect(() =>
@@ -928,6 +1511,112 @@ describe('url parser', () => {
       url({ protocols: ['https', 'http'] }).parse('http://example.com'),
     ).to.equals('http://example.com')
   })
+  describe('domain parser', () => {
+    let parser = url({ domain: 'localhost' })
+    it('should allow any port number when domain match', () => {
+      expect(parser.parse('http://localhost:8080')).to.equals(
+        'http://localhost:8080',
+      )
+      expect(parser.parse('http://localhost:3000')).to.equals(
+        'http://localhost:3000',
+      )
+    })
+    it('should reject when domain mismatch', () => {
+      expect(() => parser.parse('http://example.com:8080')).to.throws(
+        'Invalid url, domain should be "localhost"',
+      )
+    })
+  })
+  describe('port parser', () => {
+    let parser = url({ port: 8080 })
+    it('should allow if port number is matched', () => {
+      expect(parser.parse('http://localhost:8080')).to.equals(
+        'http://localhost:8080',
+      )
+    })
+    it('should reject when port number is mismatch', () => {
+      expect(() => parser.parse('http://localhost:3000')).to.throws(
+        'Invalid url, port should be 8080',
+      )
+    })
+  })
+  describe('host parser with port', () => {
+    let parser = url({ host: 'localhost:8080' })
+    it('should allow if host is matched', () => {
+      expect(parser.parse('http://localhost:8080/profile')).to.equals(
+        'http://localhost:8080/profile',
+      )
+    })
+    it('should reject when host is mismatch', () => {
+      expect(() => parser.parse('http://example.com:8080/profile')).to.throws(
+        'Invalid url, host should be "localhost:8080"',
+      )
+    })
+  })
+  describe('host parser without port', () => {
+    let parser = url({ host: 'localhost' })
+    it('should allow if host is matched', () => {
+      expect(parser.parse('http://localhost/profile')).to.equals(
+        'http://localhost/profile',
+      )
+    })
+    it('should reject when host is mismatch', () => {
+      expect(() => parser.parse('http://example.com/profile')).to.throws(
+        'Invalid url, host should be "localhost"',
+      )
+    })
+  })
+  describe('origin parser', () => {
+    let parser = url({ origin: 'https://example.net' })
+    it('should allow if origin is matched', () => {
+      expect(parser.parse('https://example.net/profile')).to.equals(
+        'https://example.net/profile',
+      )
+    })
+    it('should reject when protocol is mismatch', () => {
+      expect(() => parser.parse('http://example.net/profile')).to.throws(
+        'Invalid url, origin should be "https://example.net"',
+      )
+    })
+    it('should reject when domain is mismatch', () => {
+      expect(() => parser.parse('https://example.com/profile')).to.throws(
+        'Invalid url, origin should be "https://example.net"',
+      )
+    })
+    it('should reject when port is mismatch', () => {
+      expect(() => parser.parse('https://example.net:8080/profile')).to.throws(
+        'Invalid url, origin should be "https://example.net"',
+      )
+    })
+  })
+  it('should reject when port number is not expected', () => {
+    let parser = url({ origin: 'https://google.com' })
+    expect(() => parser.parse('https://google.com:8080/profile')).to.throws(
+      'Invalid url, origin should be "https://google.com"',
+    )
+  })
+  it('should keep the case unchanged by default', () => {
+    expect(url().parse('HTTPS://Example.COM/Path/To')).to.equals(
+      'HTTPS://Example.COM/Path/To',
+    )
+  })
+  it('should apply the case option to the whole url when specified', () => {
+    expect(
+      url({ case: 'lower' }).parse('HTTPS://Example.COM/Path/To'),
+    ).to.equals('https://example.com/path/to')
+    expect(
+      url({ case: 'upper' }).parse('https://example.com/Path/To'),
+    ).to.equals('HTTPS://EXAMPLE.COM/PATH/TO')
+  })
+  it('should match the supplied option value exactly', () => {
+    // the option value is authoritative; no case folding on either side
+    expect(
+      url({ origin: 'https://google.com' }).parse('https://google.com'),
+    ).to.equals('https://google.com')
+    expect(() =>
+      url({ origin: 'https://google.com' }).parse('HttPs://Google.Com'),
+    ).to.throws('Invalid url, origin should be "https://google.com"')
+  })
   testReflection({
     parser: url(),
     type: 'string',
@@ -938,16 +1627,185 @@ describe('url parser', () => {
     ],
     customSample: () => url(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic url',
+      parser: url(),
+      jsonSchema: { type: 'string', format: 'uri', minLength: 1 },
+      validSampleValues: [
+        'https://example.net',
+        'http://www.example.net/home',
+        'http://www.example.net/search?query=value&page=1#results',
+        'http://www.example.net?query=value&page=1#results',
+        'ftp://example.com',
+      ],
+      invalidSampleValues: [null, '', 'example.com'],
+    },
+    {
+      title: 'url with fixed protocol',
+      parser: url({ protocol: 'http' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^http://[^/?#]+',
+      },
+      validSampleValues: ['http://example.net'],
+      invalidSampleValues: ['ftp://example.com'],
+    },
+    {
+      title: 'url with multiple protocols',
+      parser: url({ protocols: ['https', 'http'] }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^(https|http)://[^/?#]+',
+      },
+      validSampleValues: ['https://example.net', 'http://example.net'],
+      invalidSampleValues: ['ftp://example.com'],
+    },
+    {
+      title: 'url with fixed domain',
+      parser: url({ domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^[^:]+://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net',
+        'https://example.net/path',
+        'https://example.net?query=value',
+      ],
+      invalidSampleValues: [
+        'https://example.com',
+        'https://example.net.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed protocol and domain',
+      parser: url({ protocol: 'https', domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^https://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net',
+        'https://example.net/search?query=value#results',
+      ],
+      invalidSampleValues: [
+        'http://example.net',
+        'https://example.net.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed port',
+      parser: url({ port: 8080 }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^[^:]+://[^:/?#]+:8080(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'http://localhost:8080',
+        'https://example.net:8080/path',
+      ],
+      invalidSampleValues: [
+        'http://localhost:9090',
+        'http://localhost',
+        'http://localhost:8080.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed domain and port',
+      parser: url({ domain: 'example.net', port: 8080 }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^[^:]+://example\\.net:8080(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net:8080',
+        'http://example.net:8080/x',
+      ],
+      invalidSampleValues: [
+        'https://example.net:9090',
+        'https://example.net',
+        'https://example.net.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed host',
+      parser: url({ host: 'example.net:8080' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^[^:]+://example\\.net:8080(?:$|[/?#])',
+      },
+      validSampleValues: ['https://example.net:8080'],
+      invalidSampleValues: [
+        'https://example.net:9090',
+        'https://example.net:8080.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed origin',
+      parser: url({ origin: 'https://example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^https://example\\.net(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net',
+        'https://example.net/path?query=value#hash',
+      ],
+      invalidSampleValues: [
+        'http://example.net',
+        'https://example.net:8080',
+        'https://example.net.evil.com',
+      ],
+    },
+    {
+      title: 'url with fixed domain allows any port',
+      parser: url({ domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'uri',
+        minLength: 1,
+        pattern: '^[^:]+://example\\.net(?::[^/?#]*)?(?:$|[/?#])',
+      },
+      validSampleValues: [
+        'https://example.net:8080',
+        'https://example.net:1/x',
+      ],
+      invalidSampleValues: ['https://example.net.evil.com'],
+    },
+  ])
 })
 
 describe('email parser', () => {
   it('should reject null', () => {
-    expect(() => email().parse(null)).to.throws('Invalid email, got null')
+    expect(() => email().parse(null)).to.throws(
+      'Invalid non-empty email, got null',
+    )
   })
-  it('should reject empty string', () => {
-    expect(() => email({ nonEmpty: true }).parse('')).to.throws(
+  it('should reject empty string by default', () => {
+    expect(() => email().parse('')).to.throws(
       'Invalid non-empty email, got empty string',
     )
+  })
+  it('should allow empty string when nonEmpty is false', () => {
+    // TODO set `allowEmpty` field instead of `nonEmpty`
+    expect(email({ nonEmpty: false }).parse('')).to.equals('')
   })
   it('should reject invalid domain', () => {
     expect(() => email().parse('user@example_com')).to.throws(
@@ -978,6 +1836,19 @@ describe('email parser', () => {
       'alice@example.net',
     )
   })
+  it('should keep the case unchanged by default', () => {
+    expect(email().parse('Alice.Smith@Example.NET')).to.equals(
+      'Alice.Smith@Example.NET',
+    )
+  })
+  it('should apply the case option to the whole address', () => {
+    expect(email({ case: 'lower' }).parse('Alice.Smith@Example.NET')).to.equals(
+      'alice.smith@example.net',
+    )
+    expect(email({ case: 'upper' }).parse('user@example.net')).to.equals(
+      'USER@EXAMPLE.NET',
+    )
+  })
   testReflection({
     parser: email(),
     type: 'string',
@@ -985,6 +1856,34 @@ describe('email parser', () => {
     randomSamples: ['user-1@example.net', 'user-2@example.net'],
     customSample: () => email(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'basic email',
+      parser: email(),
+      jsonSchema: { type: 'string', format: 'email', minLength: 1 },
+      validSampleValues: ['user@example.net', 'alice@example.org'],
+      invalidSampleValues: [null, '', 'not-an-email', 'user@example'],
+    },
+    {
+      title: 'email with fixed domain',
+      parser: email({ domain: 'example.net' }),
+      jsonSchema: {
+        type: 'string',
+        format: 'email',
+        minLength: 1,
+        pattern: '^[^@]+@example\\.net$',
+      },
+      validSampleValues: ['user@example.net', 'alice@example.net'],
+      invalidSampleValues: ['user@example.com', 'user@example.net.evil.com'],
+    },
+    {
+      title: 'non-empty email',
+      parser: email({ nonEmpty: true }),
+      jsonSchema: { type: 'string', format: 'email', minLength: 1 },
+      validSampleValues: ['user@example.net'],
+      invalidSampleValues: [''],
+    },
+  ])
 })
 
 describe('literal parser', () => {
@@ -1004,6 +1903,36 @@ describe('literal parser', () => {
     customSample: false,
     skipInfer: true,
   })
+  testJsonSchema([
+    {
+      title: 'string literal',
+      parser: literal('guest'),
+      jsonSchema: { const: 'guest', type: 'string' },
+      validSampleValues: ['guest'],
+      invalidSampleValues: ['admin', '', null, 1],
+    },
+    {
+      title: 'number literal',
+      parser: literal(42),
+      jsonSchema: { const: 42, type: 'integer' },
+      validSampleValues: [42],
+      invalidSampleValues: [41, '42', null],
+    },
+    {
+      title: 'boolean literal',
+      parser: literal(true),
+      jsonSchema: { const: true, type: 'boolean' },
+      validSampleValues: [true],
+      invalidSampleValues: [false, 'true', null],
+    },
+    {
+      title: 'null literal',
+      parser: literal(null),
+      jsonSchema: { const: null, type: 'null' },
+      validSampleValues: [null],
+      invalidSampleValues: [undefined, '', 0, false],
+    },
+  ])
 })
 
 describe('enums values parser', () => {
@@ -1050,6 +1979,36 @@ describe('enums values parser', () => {
     customSample: () => values(['user', 'admin'], mockCustomSampleProps),
     skipInfer: true,
   })
+  testJsonSchema([
+    {
+      title: 'string enums',
+      parser: values(['red', 'green']),
+      jsonSchema: { enum: ['red', 'green'], type: 'string' },
+      validSampleValues: ['red', 'green'],
+      invalidSampleValues: ['blue', '', 1, null],
+    },
+    {
+      title: 'integer enums',
+      parser: values([1, 2, 3]),
+      jsonSchema: { enum: [1, 2, 3], type: 'integer' },
+      validSampleValues: [1, 2, 3],
+      invalidSampleValues: [4, '1', null],
+    },
+    {
+      title: 'integer and number enums',
+      parser: values([1, 3.14]),
+      jsonSchema: { enum: [1, 3.14], type: 'number' },
+      validSampleValues: [1, 3.14],
+      invalidSampleValues: [2, '1', null],
+    },
+    {
+      title: 'mixed type enums',
+      parser: values(['a', 1, true]),
+      jsonSchema: { enum: ['a', 1, true] },
+      validSampleValues: ['a', 1, true],
+      invalidSampleValues: ['b', 2, false, null],
+    },
+  ])
 })
 
 describe('nullable parser', () => {
@@ -1083,6 +2042,33 @@ describe('nullable parser', () => {
     customSample: () => nullable(string(), mockCustomSampleProps),
     skipInfer: true,
   })
+  testJsonSchema([
+    {
+      title: 'nullable string',
+      parser: nullable(string()),
+      jsonSchema: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+      validSampleValues: ['guest', null],
+      invalidSampleValues: [1, false],
+    },
+    {
+      title: 'nullable number',
+      parser: nullable(number({ min: 1 })),
+      jsonSchema: {
+        anyOf: [{ type: 'number', minimum: 1 }, { type: 'null' }],
+      },
+      validSampleValues: [1, 2.5, null],
+      invalidSampleValues: [0, -1],
+    },
+    {
+      title: 'nullable literal',
+      parser: nullable(literal('guest')),
+      jsonSchema: {
+        anyOf: [{ const: 'guest', type: 'string' }, { type: 'null' }],
+      },
+      validSampleValues: ['guest', null],
+      invalidSampleValues: ['admin', 1],
+    },
+  ])
 })
 
 describe('array parser', () => {
@@ -1136,12 +2122,80 @@ describe('array parser', () => {
       array(string(), { maxLength: 2 }).parse(['alice', 'bob', 'charlie']),
     ).to.throws('Invalid array, maxLength should be 2')
   })
+  it('should accept an array of exactly the given length', () => {
+    expect(
+      array(string(), { length: 2 }).parse(['alice', 'bob']),
+    ).to.deep.equals(['alice', 'bob'])
+  })
+  it('should accept an empty array when length is 0', () => {
+    expect(array(string(), { length: 0 }).parse([])).to.deep.equals([])
+    expect(() => array(string(), { length: 0 }).parse(['alice'])).to.throws(
+      'Invalid array, maxLength should be 0',
+    )
+  })
+  it('should reject an array shorter than the given length', () => {
+    expect(() => array(string(), { length: 2 }).parse(['alice'])).to.throws(
+      'Invalid array, minLength should be 2',
+    )
+  })
+  it('should reject an array longer than the given length', () => {
+    expect(() =>
+      array(string(), { length: 2 }).parse(['alice', 'bob', 'charlie']),
+    ).to.throws('Invalid array, maxLength should be 2')
+  })
+  it('should treat length as a shortcut for minLength and maxLength', () => {
+    let parser = array(string(), { length: 1, minLength: 3, maxLength: 5 })
+    expect(parser.parse(['alice'])).to.deep.equals(['alice'])
+  })
   testReflection({
     parser: array(float()),
     type: 'Array<number>',
     sampleValue: [float().sampleValue],
     customSample: () => array(float(), mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'string array',
+      parser: array(string()),
+      jsonSchema: { type: 'array', items: { type: 'string' } },
+      validSampleValues: [['alice', 'bob']],
+      invalidSampleValues: [['alice', 1], 'alice', null],
+    },
+    {
+      title: 'array with length bounds',
+      parser: array(string(), { minLength: 1, maxLength: 2 }),
+      jsonSchema: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 1,
+        maxItems: 2,
+      },
+      validSampleValues: [['alice'], ['alice', 'bob']],
+      invalidSampleValues: [[], ['alice', 'bob', 'charlie'], ['alice', 1]],
+    },
+    {
+      title: 'array with exact length',
+      parser: array(string(), { length: 2 }),
+      jsonSchema: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 2,
+        maxItems: 2,
+      },
+      validSampleValues: [['alice', 'bob']],
+      invalidSampleValues: [['alice'], ['alice', 'bob', 'charlie']],
+    },
+    {
+      title: 'nested array',
+      parser: array(array(number())),
+      jsonSchema: {
+        type: 'array',
+        items: { type: 'array', items: { type: 'number' } },
+      },
+      validSampleValues: [[[1, 2], [3]]],
+      invalidSampleValues: [[[1, 'a']], [1, 2]],
+    },
+  ])
 })
 
 describe('singletonArray parser', () => {
@@ -1157,6 +2211,16 @@ describe('singletonArray parser', () => {
     expect(() => singletonArray(string()).parse(['alice', 'bob'])).to.throws(
       'Invalid singletonArray, maxLength should be 1',
     )
+  })
+  it('should emit json schema for an array of exactly one item', () => {
+    // the input is an array even though the parsed value is the element,
+    // so this is asserted directly instead of via testJsonSchema
+    expect(getParserJsonSchema(singletonArray(string()))).to.deep.equals({
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      maxItems: 1,
+    })
   })
 })
 
@@ -1180,6 +2244,15 @@ describe('id parser', () => {
     type: 'number',
     customSample: () => id(mockCustomSampleProps),
   })
+  testJsonSchema([
+    {
+      title: 'id',
+      parser: id(),
+      jsonSchema: { type: 'integer', minimum: 1 },
+      validSampleValues: [1, 2, 42],
+      invalidSampleValues: [0, -1, 1.5, null, NaN],
+    },
+  ])
 })
 
 describe('or parser', () => {
@@ -1302,6 +2375,31 @@ describe('or parser', () => {
     expect(or([string(), number()]).parse(42)).to.equals('42')
     expect(or([number(), string()]).parse('42')).to.equals(42)
   })
+  testJsonSchema([
+    {
+      title: 'union of string and number',
+      parser: or([string(), number()]),
+      jsonSchema: { anyOf: [{ type: 'string' }, { type: 'number' }] },
+      validSampleValues: ['text', 42],
+      invalidSampleValues: [null, true, []],
+    },
+    {
+      title: 'union of object and string',
+      parser: or([object({ name: string() }), string()]),
+      jsonSchema: {
+        anyOf: [
+          {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+          { type: 'string' },
+        ],
+      },
+      validSampleValues: [{ name: 'alice' }, 'text'],
+      invalidSampleValues: [{}, { name: 1 }, 1],
+    },
+  ])
 })
 
 describe('and parser', () => {
@@ -1359,6 +2457,55 @@ describe('and parser', () => {
     expect(typeof user.name).to.equals('string')
     expect(userParser.type).to.equals(userType)
   })
+  testJsonSchema([
+    {
+      title: 'intersection of objects',
+      parser: and<{ a: string; b: number }>([
+        object({ a: string() }),
+        object({ b: number() }),
+      ]),
+      jsonSchema: {
+        allOf: [
+          {
+            type: 'object',
+            properties: { a: { type: 'string' } },
+            required: ['a'],
+          },
+          {
+            type: 'object',
+            properties: { b: { type: 'number' } },
+            required: ['b'],
+          },
+        ],
+      },
+      validSampleValues: [{ a: 'alice', b: 1 }],
+      invalidSampleValues: [{ a: 'alice' }, { b: 1 }, {}],
+    },
+    {
+      title: 'intersection of number ranges',
+      parser: and<{ n: number }>([
+        object({ n: int({ min: 0 }) }),
+        object({ n: int({ max: 10 }) }),
+      ]),
+      jsonSchema: {
+        allOf: [
+          {
+            type: 'object',
+            properties: { n: { type: 'integer', minimum: 0 } },
+            required: ['n'],
+          },
+          {
+            type: 'object',
+            properties: { n: { type: 'integer', maximum: 10 } },
+            required: ['n'],
+          },
+        ],
+      },
+      // both bounds apply: -1 fails the minimum, 11 fails the maximum
+      validSampleValues: [{ n: 0 }, { n: 5 }, { n: 10 }],
+      invalidSampleValues: [{ n: -1 }, { n: 11 }],
+    },
+  ])
 })
 
 describe('dict parser', () => {
@@ -1407,6 +2554,30 @@ describe('dict parser', () => {
   it('should alias to record', () => {
     expect(dict).to.equals(record)
   })
+  testJsonSchema([
+    {
+      title: 'dict of strings',
+      parser: dict({ value: string() }),
+      jsonSchema: {
+        type: 'object',
+        additionalProperties: { type: 'string' },
+      },
+      validSampleValues: [{}, { a: 'alice', b: 'bob' }],
+      invalidSampleValues: [{ a: 1 }, [], null],
+    },
+    {
+      title: 'dict of numbers with int keys',
+      parser: dict({ key: int(), value: number() }),
+      jsonSchema: {
+        type: 'object',
+        additionalProperties: { type: 'number' },
+        // keys are strings in JSON, so the numeric key parser is approximated
+        propertyNames: { type: 'string', pattern: '^-?\\d+(?:\\.\\d+)?$' },
+      },
+      validSampleValues: [{ '1': 1 }, { '1': 1, '2': 2.5 }],
+      invalidSampleValues: [{ '1': 'text' }, { a: 1 }],
+    },
+  ])
 })
 
 function testReflection<T>(options: {
@@ -1614,3 +2785,63 @@ describe('d3', () => {
     expect(d3(999)).to.equals(999)
   })
 })
+
+function testJsonSchema<T>(
+  options: {
+    title: string
+    parser: Parser<T>
+    jsonSchema: JsonSchema
+    validSampleValues: T[]
+    invalidSampleValues: any[]
+  }[],
+) {
+  describe('json schema', () => {
+    for (let option of options) {
+      let {
+        title,
+        parser,
+        jsonSchema,
+        validSampleValues,
+        invalidSampleValues,
+      } = option
+      describe(title, () => {
+        it('should have jsonSchema', () => {
+          let actualSchema = getParserJsonSchema(parser)
+          let expectedSchema = jsonSchema
+          expect(actualSchema).to.deep.equals(expectedSchema)
+        })
+        it('should produce valid json schema', () => {
+          let schema = getParserJsonSchema(parser)
+          let validate = ajv.compile(schema)
+          expect(typeof validate).to.equals('function')
+        })
+        it('should accept valid sampleValues', () => {
+          let schema = getParserJsonSchema(parser)
+          let validate = ajv.compile(schema)
+          for (let value of validSampleValues) {
+            let result = validate(value)
+            expect(result, `valid sampleValue: ${inspect(value)}`).to.be.true
+          }
+        })
+        it('should reject invalid sampleValues', () => {
+          let schema = getParserJsonSchema(parser)
+          let validate = ajv.compile(schema)
+          for (let value of invalidSampleValues) {
+            let result = validate(value)
+            expect(result, `invalid sampleValue: ${inspect(value)}`).to.be.false
+          }
+        })
+        it('should agree with parse() on valid sampleValues', () => {
+          // guards against the schema drifting from the parser's own rules:
+          // every value the schema accepts must also be accepted by parse()
+          for (let value of validSampleValues) {
+            expect(
+              () => parser.parse(value),
+              `parser should accept valid sampleValue: ${inspect(value)}`,
+            ).to.not.throw()
+          }
+        })
+      })
+    }
+  })
+}

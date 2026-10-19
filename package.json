@@ -37,7 +37,9 @@
   "devDependencies": {
     "@types/chai": "^4.3.9",
     "@types/mocha": "^10.0.3",
-    "@types/node": "^20.8.9",
+    "@types/node": "^24",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "chai": "^4.3.10",
     "gen-ts-type": "^1.8.0",
     "mocha": "^10.2.0",

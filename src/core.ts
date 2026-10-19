@@ -5,8 +5,36 @@ export type ParseResult<T extends Parser<R>, R = unknown> = ReturnType<
 export type Parser<T> = {
   parse(input: unknown, context?: ParserContext): T
   type: string
+  jsonSchema?: JsonSchema
   sampleValue: T
   randomSample: () => T
+}
+
+// at least one of the keys must be present
+type AtLeastOneOf<T, K extends keyof T = keyof T> = Partial<T> &
+  (K extends unknown ? { [P in K]: T[P] } : never)
+
+export type JsonSchema = AtLeastOneOf<{
+  type: string
+  const: Primitive
+  enum: Primitive[]
+  anyOf: JsonSchema[]
+  allOf: JsonSchema[]
+}> & {
+  description?: string
+  minimum?: number
+  maximum?: number
+  minLength?: number
+  maxLength?: number
+  pattern?: string // regex string
+  format?: string // e.g. 'uri'
+  properties?: Record<string, JsonSchema>
+  required?: string[]
+  propertyNames?: JsonSchema
+  additionalProperties?: boolean | JsonSchema
+  items?: JsonSchema
+  minItems?: number
+  maxItems?: number
 }
 
 // used when building new data parser on top of existing parser
@@ -209,10 +237,27 @@ export function string(
     }
     return value
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'string' }
+    if (options.nonEmpty) {
+      schema.minLength = 1
+    }
+    if (typeof options.minLength === 'number') {
+      schema.minLength = options.minLength
+    }
+    if (typeof options.maxLength === 'number') {
+      schema.maxLength = options.maxLength
+    }
+    if (options.match) {
+      schema.pattern = options.match.source
+    }
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 'text',
@@ -223,13 +268,18 @@ export function string(
   }
 }
 
-let urlRegex = /^(.+?):\/\/(.+?)(\/|$)/
+let urlRegex = /^([^:]+):\/\/([^/?#]+)/
 export type UrlOptions = StringOptions & {
   domain?: string
+  port?: number | string
+  host?: string // host is domain + port number
   protocol?: string
   protocols?: string[]
+  origin?: string // protocol + domain + port
+  // TODO support IPv6 host / origin; out of scope for now
 }
 export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
+  options.nonEmpty ??= true
   let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''
@@ -248,8 +298,20 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
         reasonSuffix: context.reasonSuffix,
       })
     }
+    let origin = match[0]
     let protocol = match[1]
-    let domain = match[2]
+    let host = match[2]
+    // TODO support IPv6 host (e.g. '[::1]:3000'); out of scope for now
+    let [domain, port] = host.split(':')
+    if (typeof options.origin === 'string' && origin !== options.origin) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'origin should be ' + JSON.stringify(options.origin),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     if (
       Array.isArray(options.protocols) &&
       !options.protocols.includes(protocol)
@@ -272,21 +334,129 @@ export function url(options: UrlOptions & CustomSampleOptions<string> = {}) {
         reasonSuffix: context.reasonSuffix,
       })
     }
+    if (typeof options.host === 'string' && host !== options.host) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason:
+          'host should be ' +
+          JSON.stringify(options.host) +
+          ' got ' +
+          JSON.stringify(host),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     if (typeof options.domain === 'string' && domain !== options.domain) {
       throw new InvalidInputError({
         name: context.name,
         typePrefix: context.typePrefix,
         expectedType,
-        reason: 'domain should be ' + JSON.stringify(options.domain),
+        reason:
+          'domain should be ' +
+          JSON.stringify(options.domain) +
+          ' got ' +
+          JSON.stringify(domain),
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    if (
+      (typeof options.port === 'number' || typeof options.port === 'string') &&
+      String(port) !== String(options.port)
+    ) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason:
+          'port should be ' +
+          JSON.stringify(options.port) +
+          ' got ' +
+          JSON.stringify(port),
         reasonSuffix: context.reasonSuffix,
       })
     }
     return url
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { ...getParserJsonSchema(parser) }
+    schema.format = 'uri'
+
+    let protocol = '[^:]+'
+    let host = '[^/?#]+'
+    // an exact host/domain/origin needs an explicit boundary so 'example.com'
+    // does not also match 'example.com.evil.com'
+    let boundary = '(?:$|[/?#])'
+    let constrained = false
+    let needsBoundary = false
+
+    // `protocol` and `protocols` are alternative ways to constrain the scheme;
+    // using both is not supported (parse() would AND them, this unions them)
+    let allowedProtocols = [
+      ...new Set(
+        [options.protocol, ...(options.protocols ?? [])].filter(
+          (value): value is string => typeof value === 'string',
+        ),
+      ),
+    ]
+    if (allowedProtocols.length > 0) {
+      let protocols = allowedProtocols.map(escapeRegexLiteral)
+      protocol =
+        protocols.length === 1 ? protocols[0] : '(' + protocols.join('|') + ')'
+      constrained = true
+    }
+
+    // `origin` is protocol + host, so it subsumes the other host constraints
+    let originMatch =
+      typeof options.origin === 'string' ? options.origin.match(urlRegex) : null
+    if (originMatch) {
+      protocol = escapeRegexLiteral(originMatch[1])
+      host = escapeRegexLiteral(originMatch[2])
+      constrained = true
+      needsBoundary = true
+    } else if (typeof options.host === 'string') {
+      // host is 'domain' or 'domain:port'
+      host = escapeRegexLiteral(options.host)
+      constrained = true
+      needsBoundary = true
+    } else if (typeof options.domain === 'string') {
+      host = escapeRegexLiteral(options.domain)
+      if (
+        typeof options.port === 'number' ||
+        typeof options.port === 'string'
+      ) {
+        host += ':' + escapeRegexLiteral(String(options.port))
+      } else {
+        // parse() accepts any port when only the domain is pinned
+        host += '(?::[^/?#]*)?'
+      }
+      constrained = true
+      needsBoundary = true
+    } else if (
+      typeof options.port === 'number' ||
+      typeof options.port === 'string'
+    ) {
+      host = '[^:/?#]+:' + escapeRegexLiteral(String(options.port))
+      constrained = true
+      // the port literal must be complete, so 'example.com:8080' does not
+      // also accept 'example.com:8080.evil.com'
+      needsBoundary = true
+    }
+
+    if (constrained) {
+      schema.pattern = '^' + protocol + '://' + host
+      if (needsBoundary) {
+        schema.pattern += boundary
+      }
+    }
+
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultUrlSampleProps,
       customProps: options,
@@ -301,15 +471,13 @@ const defaultUrlSampleProps: SampleProps<string> = {
 let emailRegex = /^.+?@(.+)$/
 export type EmailOptions = StringOptions & {
   domain?: string
-  case?: 'lower' | 'upper' | 'unchanged' // default 'lower'
+  case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
 }
 export function email(
   options: EmailOptions & CustomSampleOptions<string> = {},
 ) {
-  let parser = string({
-    ...options,
-    case: options.case || 'lower',
-  })
+  options.nonEmpty ??= true
+  let parser = string(options)
   function parse(input: unknown, context: ParserContext = {}): string {
     if (!options.nonEmpty && input === '') return ''
     let expectedType = context.overrideType || 'email'
@@ -349,10 +517,21 @@ export function email(
     }
     return email
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { ...getParserJsonSchema(parser) }
+    schema.format = 'email'
+
+    if (typeof options.domain === 'string') {
+      schema.pattern = '^[^@]+@' + escapeRegexLiteral(options.domain) + '$'
+    }
+
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultEmailSampleProps,
       customProps: options,
@@ -364,7 +543,32 @@ const defaultEmailSampleProps: SampleProps<string> = {
   randomSample: () => 'user-' + randomId() + '@example.net',
 }
 
-let colorRegex = /^#[0-9a-f]{6}$/i
+/** @description the regex used by color(), exported for reuse when validating colors */
+export let colorRegex: RegExp
+{
+  // flag-free so `colorRegex.source` can be reused as the json schema pattern
+  // (JSON Schema patterns cannot carry the `i` flag)
+  //
+  // channel: 0-255, or 0%-100%   e.g. 0, 255, 50%, 100%
+  // alpha:   0-1,   or 0%-100%   e.g. 0, 0.5, 1, 50%
+  let colorChannel =
+    '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d|(?:100|[1-9]?\\d)%)'
+  let colorAlpha = '(?:0|1|0?\\.\\d+|(?:100|[1-9]?\\d)%)'
+  // rgb() and rgba() are aliases; both take 3 or 4 arguments
+  //   e.g. rgb(255, 0, 0), rgba(255, 0, 0, 0.5), rgb(12 32 54 / 0.5)
+  let colorFunction = '[rR][gG][bB][aA]?'
+  // classic comma-separated syntax
+  let colorComma = `${colorFunction}\\(\\s*${colorChannel}\\s*,\\s*${colorChannel}\\s*,\\s*${colorChannel}(?:\\s*,\\s*${colorAlpha})?\\s*\\)`
+  // modern space-separated syntax, with alpha after a slash
+  let colorSpace = `${colorFunction}\\(\\s*${colorChannel}\\s+${colorChannel}\\s+${colorChannel}(?:\\s*/\\s*${colorAlpha})?\\s*\\)`
+  // hexDigit: 0-9, a-f or A-F   e.g. 0, 9, a, F
+  let hexDigit = '[0-9a-fA-F]'
+  // hex: 3, 4, 6 or 8 digits   e.g. #abc, #ABCD, #123456, #12345678
+  let colorHex = `#(?:${hexDigit}{3,4}|${hexDigit}{6}|${hexDigit}{8})`
+  // full color: hex, or rgb()/rgba() in either syntax
+  //   e.g. #c0ffee, rgb(255, 0, 0), rgb(12 32 54 / 50%)
+  colorRegex = new RegExp(`^(?:${colorHex}|${colorComma}|${colorSpace})$`)
+}
 /** @description for parsing <input type="color"> in html form submission */
 export function color(options?: CustomSampleOptions<string>) {
   function parse(input: unknown, context: ParserContext = {}): string {
@@ -383,15 +587,23 @@ export function color(options?: CustomSampleOptions<string>) {
         name: context.name,
         typePrefix: context.typePrefix,
         expectedType,
-        reason: 'should be in "#rrggbb" hexadecimal format',
+        reason:
+          'should be a hex color (#rgb, #rgba, #rrggbb, #rrggbbaa) or rgb()/rgba()',
         reasonSuffix: context.reasonSuffix,
       })
     }
     return input
   }
+  function getJsonSchema(): JsonSchema {
+    return {
+      type: 'string',
+      pattern: colorRegex.source,
+    }
+  }
   return {
     parse,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultColorSampleProps,
       customProps: options,
@@ -492,10 +704,21 @@ export function number(
     }
     return input
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'number' }
+    if (typeof options.min === 'number') {
+      schema.minimum = options.min
+    }
+    if (typeof options.max === 'number') {
+      schema.maximum = options.max
+    }
+    return schema
+  }
   return {
     parse,
     options,
     type: 'number',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 3.14,
@@ -597,6 +820,9 @@ export function float(
     parse,
     options,
     type: 'number',
+    // rounding options (toFixed/toPrecision) affect the parsed value, not the
+    // JSON shape, so the schema is the underlying number schema
+    jsonSchema: parser.jsonSchema,
     ...populateSampleProps({
       defaultProps: defaultFloatSampleProps,
       customProps: options,
@@ -609,7 +835,8 @@ const defaultFloatSampleProps: SampleProps<number> = {
 }
 
 export function int(options: NumberOptions & CustomSampleOptions<number> = {}) {
-  let parseNumber = number(options).parse
+  let numberParser = number(options)
+  let parseNumber = numberParser.parse
   function parse(input: unknown, context: ParserContext = {}): number {
     let expectedType = context.overrideType || 'int'
     let value = parseNumber(input, {
@@ -627,10 +854,17 @@ export function int(options: NumberOptions & CustomSampleOptions<number> = {}) {
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    // reuse the numeric bounds, but constrain to whole numbers
+    let schema: JsonSchema = { ...getParserJsonSchema(numberParser) }
+    schema.type = 'integer'
+    return schema
+  }
   return {
     parse,
     options,
     type: 'number',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: 42,
@@ -695,7 +929,12 @@ export function object<T extends object>(
         })
       }
       let valueInput = input[key as keyof typeof input]
-      if (valueInput == null && isOptional(valueParser)) {
+      if (
+        (valueInput === undefined ||
+          valueInput === null ||
+          valueInput === '') &&
+        isOptional(valueParser)
+      ) {
         continue
       }
       let value = valueParser.parse(valueInput, {
@@ -770,11 +1009,34 @@ export function object<T extends object>(
     return type
   }
 
+  function getJsonSchema(): JsonSchema {
+    let properties: Record<string, JsonSchema> = {}
+    let required: string[] = []
+    for (let key in fieldParsers) {
+      let fieldParser = fieldParsers[key]
+      properties[key] = getParserJsonSchema(fieldParser)
+      // optional fields may be absent; a checkbox defaults to false when absent
+      if (!isOptional(fieldParser) && !isCheckbox(fieldParser)) {
+        required.push(key)
+      }
+    }
+    let schema: JsonSchema = { type: 'object', properties }
+    if (required.length > 0) {
+      schema.required = required
+    }
+    return schema
+  }
+
   return {
     parse,
     options: fieldParsers,
     get type() {
       return getType()
+    },
+    // computed lazily: the schema depends on field parsers, and not every
+    // parser supports jsonSchema yet — building an object must not throw
+    get jsonSchema() {
+      return getJsonSchema()
     },
     ...populateSampleProps({
       defaultProps: {
@@ -819,6 +1081,12 @@ export function nullable<T>(
     parse,
     parser,
     type,
+    // computed lazily: the inner parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return {
+        anyOf: [getParserJsonSchema(parser), { type: 'null' }],
+      }
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: null,
@@ -854,10 +1122,18 @@ export function boolean(expectedValue?: boolean) {
     }
     return value
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'boolean' }
+    if (typeof expectedValue === 'boolean') {
+      schema.const = expectedValue
+    }
+    return schema
+  }
   return {
     parse,
     expectedValue,
     type: 'boolean',
+    jsonSchema: getJsonSchema(),
     sampleValue: true,
     randomSample: () => Math.random() < 0.5,
   }
@@ -899,9 +1175,11 @@ export function checkbox(options?: CustomSampleOptions<boolean>) {
     let expectedType = context.overrideType || 'checkbox'
     switch (input) {
       case 'on':
+      case true:
         return true
       case undefined:
       case '':
+      case false:
         return false
       default:
         throw new InvalidInputError({
@@ -913,10 +1191,14 @@ export function checkbox(options?: CustomSampleOptions<boolean>) {
         })
     }
   }
+  function getJsonSchema(): JsonSchema {
+    return { type: 'boolean' }
+  }
   return {
     parse,
     checkbox: true,
     type: 'boolean',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: true,
@@ -934,6 +1216,34 @@ function isCheckbox(parser: Parser<unknown>): boolean {
 export type DateOptions = {
   min?: number | Date | string
   max?: number | Date | string
+}
+// month 1-12 and day 1-31; non-padded input is normalised by parse()
+// e.g. 2022-09-17, 2024-1-2
+const datePattern = '\\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12]\\d|3[01])'
+// ISO-like input, with or without a timezone; a missing zone means local time
+// e.g. 2026-10-19T07:16:58.199Z, 2026-10-19T07:16:58, 2026-10-19T07:16:58+08:00
+const dateTimePattern =
+  // e.g. 2026-10-19
+  `^${datePattern}` +
+  // e.g. T07:16 or " 07:16"
+  '(?:[T ](?:[01]?\\d|2[0-3]):[0-5]\\d' +
+  // e.g. :58 or :58.199
+  '(?::[0-5]\\d(?:\\.\\d{1,3})?)?' +
+  // e.g. Z or +08:00
+  '(?:Z|[+-]\\d{2}:?\\d{2})?)?$'
+// JSON Schema has no portable string-range keyword, so min/max are recorded as
+// an annotation; parse() remains the enforcer
+function rangeDescription(options: { min?: unknown; max?: unknown }) {
+  let { min, max } = options
+  if (min !== undefined && max !== undefined) {
+    return `between ${JSON.stringify(min)} and ${JSON.stringify(max)}`
+  }
+  if (min !== undefined) {
+    return `at least ${JSON.stringify(min)}`
+  }
+  if (max !== undefined) {
+    return `at most ${JSON.stringify(max)}`
+  }
 }
 export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
   let min =
@@ -999,10 +1309,35 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    // JSON can only carry the input as a string or a number; parse() converts
+    // either form into a Date. A string without a timezone is read as local
+    // time, matching what `new Date()` does.
+    let schema: JsonSchema = {
+      anyOf: [
+        {
+          type: 'string',
+          pattern: dateTimePattern,
+          description:
+            'ISO 8601 date or date-time, e.g. "2026-10-19" or "2026-10-19T07:16:58.199Z"; no timezone means local time',
+        },
+        {
+          type: 'number',
+          description: 'milliseconds since the Unix epoch, e.g. 1663372800000',
+        },
+      ],
+    }
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
+    return schema
+  }
   return {
     parse,
     options,
     type: 'Date',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultDateSampleProps,
       customProps: options,
@@ -1131,10 +1466,23 @@ export function dateString(
     }
     return dateString
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'string' }
+    if (options.nonEmpty) {
+      schema.minLength = 1
+    }
+    schema.pattern = `^${datePattern}$`
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultDateStringSampleProps,
       customProps: options,
@@ -1226,6 +1574,14 @@ export type TimeStringOptions = {
   /** @description default 'minute' */
   precision?: TimePrecision
 }
+const timePatternByPrecision: Record<TimePrecision, string> = {
+  // e.g. "13:45" or "9:05"
+  minute: '(?:[01]?\\d|2[0-3]):[0-5]\\d',
+  // e.g. "13:45:00"
+  second: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d',
+  // e.g. "13:45:00.000" (1-3 digits, padded by parse)
+  millisecond: '(?:[01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{1,3}',
+}
 /**
  * @description parse time string in format 'hh:mm' from Date | string
  */
@@ -1293,10 +1649,24 @@ export function timeString(
     }
     return timeString
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'string' }
+    if (options.nonEmpty) {
+      schema.minLength = 1
+    }
+    schema.pattern =
+      '^' + timePatternByPrecision[options.precision || 'minute'] + '$'
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: defaultTimeStringSampleProps,
       customProps: options,
@@ -1418,6 +1788,14 @@ export type TimestampOptions = {
   /** @description default 'second' */
   precision?: TimestampPrecision
 }
+const timestampPatternByPrecision: Record<TimestampPrecision, string> = {
+  // e.g. "2026-10-19 13:45"
+  minute: `^${datePattern} ${timePatternByPrecision.minute}$`,
+  // e.g. "2026-10-19 13:45:00"
+  second: `^${datePattern} ${timePatternByPrecision.second}$`,
+  // e.g. "2026-10-19 13:45:00.000"
+  millisecond: `^${datePattern} ${timePatternByPrecision.millisecond}$`,
+}
 /**
  * @description parse timestamp string in format 'yyyy-mm-dd hh:mm:ss' from Date | string
  */
@@ -1481,10 +1859,23 @@ export function timestamp(
     }
     return timestamp
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { type: 'string' }
+    if (options.nonEmpty) {
+      schema.minLength = 1
+    }
+    schema.pattern = timestampPatternByPrecision[precision]
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
+    return schema
+  }
   return {
     parse,
     options,
     type: 'string',
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: toTimestampString(
@@ -1535,6 +1926,41 @@ export function toTimestampString(
   }
 }
 
+/** @description map a primitive to its JSON Schema type, when one applies */
+function getPrimitiveJsonType(value: Primitive): string | undefined {
+  if (value === null) return 'null'
+  switch (typeof value) {
+    case 'string':
+      return 'string'
+    case 'number':
+      return Number.isInteger(value) ? 'integer' : 'number'
+    case 'boolean':
+      return 'boolean'
+    case 'bigint':
+      return 'integer'
+    case 'symbol':
+    case 'undefined':
+      return undefined
+  }
+}
+
+/** @description the common JSON Schema type of the values, if there is one */
+function getCommonJsonType(values: Primitive[]): string | undefined {
+  let types = values.map(getPrimitiveJsonType)
+  if (types.length === 0 || types.some(type => type === undefined)) {
+    return undefined
+  }
+  let unique = new Set(types)
+  if (unique.size === 1) {
+    return types[0]
+  }
+  // integers are valid numbers, so a mixed integer/number list is `number`
+  if (unique.size === 2 && unique.has('integer') && unique.has('number')) {
+    return 'number'
+  }
+  return undefined
+}
+
 export function literal<T extends Primitive>(value: T) {
   function parse(input: unknown, context: ParserContext = {}): T {
     if (input === value) return value
@@ -1548,10 +1974,19 @@ export function literal<T extends Primitive>(value: T) {
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { const: value }
+    let type = getPrimitiveJsonType(value)
+    if (type) {
+      schema.type = type
+    }
+    return schema
+  }
   return {
     parse,
     value,
     type: JSON.stringify(value),
+    jsonSchema: getJsonSchema(),
     sampleValue: value,
     randomSample: () => value,
   }
@@ -1597,10 +2032,19 @@ export function values<T extends Primitive>(
       reasonSuffix: context.reasonSuffix,
     })
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = { enum: values }
+    let type = getCommonJsonType(values)
+    if (type) {
+      schema.type = type
+    }
+    return schema
+  }
   return {
     parse,
     values,
     type: values.map(value => JSON.stringify(value)).join(' | '),
+    jsonSchema: getJsonSchema(),
     ...populateSampleProps({
       defaultProps: {
         sampleValue: values[0],
@@ -1615,14 +2059,19 @@ export function values<T extends Primitive>(
 export let enums = values
 
 export type ArrayOptions = {
-  minLength?: number
-  maxLength?: number
+  length?: number // exactly this many items; shortcut for minLength = maxLength
+  minLength?: number // at least this many items
+  maxLength?: number // at most this many items
   maybeSingle?: boolean // to handle variadic value (e.g. req.query.category)
 }
 export function array<T>(
   parser: Parser<T>,
   options: ArrayOptions & CustomSampleOptions<T[]> = {},
 ) {
+  if (typeof options.length === 'number') {
+    options.minLength = options.length
+    options.maxLength = options.length
+  }
   function parse(input: unknown, context: ParserContext = {}): T[] {
     let { typePrefix, reasonSuffix } = context
     let expectedType = context.overrideType || 'array'
@@ -1673,11 +2122,28 @@ export function array<T>(
     }
     return values
   }
+  function getJsonSchema(): JsonSchema {
+    let schema: JsonSchema = {
+      type: 'array',
+      items: getParserJsonSchema(parser),
+    }
+    if (typeof options.minLength === 'number') {
+      schema.minItems = options.minLength
+    }
+    if (typeof options.maxLength === 'number') {
+      schema.maxItems = options.maxLength
+    }
+    return schema
+  }
   return {
     parse,
     parser,
     options,
     type: `Array<${getParserType(parser)}>`,
+    // computed lazily: the item parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return getJsonSchema()
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: [parser.sampleValue],
@@ -1703,6 +2169,10 @@ export function singletonArray<T>(valueParser: Parser<T>): Parser<T> {
   return {
     parse,
     type: valueParser.type,
+    // the input is an array of exactly one element; the parser unwraps it
+    get jsonSchema(): JsonSchema | undefined {
+      return arrayParser.jsonSchema
+    },
     sampleValue: valueParser.sampleValue,
     randomSample: valueParser.randomSample,
   }
@@ -1712,13 +2182,16 @@ export function singletonArray<T>(valueParser: Parser<T>): Parser<T> {
  * @description for parsing database auto-increment primary key
  */
 export function id(options?: CustomSampleOptions<number>) {
-  let parseInt = int({ min: 1 }).parse
+  let intParser = int({ min: 1 })
+  let parseInt = intParser.parse
   function parse(input: unknown, context: ParserContext = {}): number {
     return parseInt(input, { ...context, overrideType: 'id' })
   }
   return {
     parse,
     type: 'number',
+    // an id is a positive integer
+    jsonSchema: intParser.jsonSchema,
     ...populateSampleProps({
       defaultProps: defaultIdSampleProps,
       customProps: options,
@@ -1786,6 +2259,12 @@ export function or<P extends Parser<any>>(
     parsers,
     options,
     type: unionType,
+    // computed lazily: a member parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return {
+        anyOf: parsers.map(getParserJsonSchema),
+      }
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: parsers[0]!.sampleValue,
@@ -1877,6 +2356,12 @@ export function and<P extends object>(
     parsers,
     options,
     type: intersectionType,
+    // computed lazily: a member parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      return {
+        allOf: parsers.map(getParserJsonSchema),
+      }
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: parsers.reduce(
@@ -1939,6 +2424,22 @@ export function dict<K extends PropertyKey, V>(
     parse,
     options,
     type: recordType,
+    // computed lazily: the value parser may not support jsonSchema yet
+    get jsonSchema(): JsonSchema {
+      let schema: JsonSchema = {
+        type: 'object',
+        additionalProperties: getParserJsonSchema(valueParser),
+      }
+      if (keyType === 'number') {
+        // JSON object keys are strings, so a numeric key parser can only be
+        // approximated: this matches plain and decimal numbers, not exponents
+        schema.propertyNames = {
+          type: 'string',
+          pattern: '^-?\\d+(?:\\.\\d+)?$',
+        }
+      }
+      return schema
+    },
     ...populateSampleProps({
       defaultProps: {
         sampleValue: {} as Record<K, V>,
@@ -1996,6 +2497,30 @@ function concat(
     return a + ' ' + b
   }
   return a || b
+}
+
+function escapeRegexLiteral(literal: string): string {
+  return literal
+    .replace(/\\/g, '\\\\')
+    .replace(/\^/g, '\\^')
+    .replace(/\$/g, '\\$')
+    .replace(/\./g, '\\.')
+    .replace(/\|/g, '\\|')
+    .replace(/\?/g, '\\?')
+    .replace(/\*/g, '\\*')
+    .replace(/\+/g, '\\+')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+}
+
+export function getParserJsonSchema(parser: Partial<Parser<any>>): JsonSchema {
+  if (parser.jsonSchema) return parser.jsonSchema
+  // TODO auto infer jsonSchema from parser
+  throw new Error('Parser has no jsonSchema')
 }
 
 export function getParserType(parser: Partial<Parser<any>>): string {
