@@ -1224,6 +1224,20 @@ const dateTimePattern =
   '(?::[0-5]\\d(?:\\.\\d{1,3})?)?' +
   // e.g. Z or +08:00
   '(?:Z|[+-]\\d{2}:?\\d{2})?)?$'
+// JSON Schema has no portable string-range keyword, so min/max are recorded as
+// an annotation; parse() remains the enforcer
+function rangeDescription(options: { min?: unknown; max?: unknown }) {
+  let { min, max } = options
+  if (min !== undefined && max !== undefined) {
+    return `between ${JSON.stringify(min)} and ${JSON.stringify(max)}`
+  }
+  if (min !== undefined) {
+    return `at least ${JSON.stringify(min)}`
+  }
+  if (max !== undefined) {
+    return `at most ${JSON.stringify(max)}`
+  }
+}
 export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
   let min =
     options.min !== undefined
@@ -1292,7 +1306,7 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
     // JSON can only carry the input as a string or a number; parse() converts
     // either form into a Date. A string without a timezone is read as local
     // time, matching what `new Date()` does.
-    return {
+    let schema: JsonSchema = {
       anyOf: [
         {
           type: 'string',
@@ -1306,6 +1320,11 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
         },
       ],
     }
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
+    return schema
   }
   return {
     parse,
@@ -1446,6 +1465,10 @@ export function dateString(
       schema.minLength = 1
     }
     schema.pattern = `^${datePattern}$`
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
     return schema
   }
   return {
@@ -1626,6 +1649,10 @@ export function timeString(
     }
     schema.pattern =
       '^' + timePatternByPrecision[options.precision || 'minute'] + '$'
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
     return schema
   }
   return {
@@ -1831,6 +1858,10 @@ export function timestamp(
       schema.minLength = 1
     }
     schema.pattern = timestampPatternByPrecision[precision]
+    let description = rangeDescription(options)
+    if (description) {
+      schema.description = description
+    }
     return schema
   }
   return {

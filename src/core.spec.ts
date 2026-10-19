@@ -989,6 +989,21 @@ describe('date parser', () => {
       expect(validate(value), `invalid: ${inspect(value)}`).to.be.false
     }
   })
+  it('should describe min/max without encoding them', () => {
+    expect(
+      getParserJsonSchema(date({ min: '2022-01-01', max: '2022-12-31' })),
+    ).to.deep.equals({
+      anyOf: [
+        {
+          type: 'string',
+          pattern: expectedDateTime,
+          description: expectedDateTimeDescription,
+        },
+        { type: 'number', description: expectedEpochDescription },
+      ],
+      description: 'between "2022-01-01" and "2022-12-31"',
+    })
+  })
   testReflection({
     parser: date(),
     type: 'Date',
@@ -1057,6 +1072,15 @@ describe('dateString parser', () => {
         max: '2022-12-31',
       }).parse('2022-09-17'),
     ).to.deep.equals('2022-09-17')
+  })
+  it('should describe min/max without encoding them', () => {
+    expect(
+      getParserJsonSchema(dateString({ min: '2022-01-01', max: '2022-12-31' })),
+    ).to.deep.equals({
+      type: 'string',
+      pattern: expectedDateString,
+      description: 'between "2022-01-01" and "2022-12-31"',
+    })
   })
   testReflection({
     parser: dateString(),
@@ -1196,6 +1220,15 @@ describe('timeString parser', () => {
       expect(
         timeString({ precision: 'minute' }).parse('13:45:59.123'),
       ).to.equals('13:45')
+    })
+  })
+  it('should describe min/max without encoding them', () => {
+    expect(
+      getParserJsonSchema(timeString({ min: '13:00', max: '14:00' })),
+    ).to.deep.equals({
+      type: 'string',
+      pattern: expectedTimeString('minute'),
+      description: 'between "13:00" and "14:00"',
     })
   })
   testReflection({
@@ -1389,9 +1422,10 @@ describe('timestamp parser', () => {
       invalidSampleValues: [''],
     },
   ])
-  it('should not encode min/max in the schema', () => {
+  it('should describe min/max without encoding them', () => {
     // JSON Schema has no portable string-range keyword: minimum/maximum are
-    // number-only, so timestamp ranges stay enforced by parse() alone
+    // number-only, so the bounds are documented as an annotation and stay
+    // enforced by parse()
     let schema = getParserJsonSchema(
       timestamp({
         min: '2022-01-01 00:00:00',
@@ -1401,7 +1435,14 @@ describe('timestamp parser', () => {
     expect(schema).to.deep.equals({
       type: 'string',
       pattern: expectedTimestamp('second'),
+      description: 'between "2022-01-01 00:00:00" and "2022-12-31 23:59:59"',
     })
+    expect(
+      getParserJsonSchema(timestamp({ min: '2022-01-01 00:00:00' })),
+    ).to.have.property('description', 'at least "2022-01-01 00:00:00"')
+    expect(
+      getParserJsonSchema(timestamp({ max: '2022-12-31 23:59:59' })),
+    ).to.have.property('description', 'at most "2022-12-31 23:59:59"')
   })
 })
 
