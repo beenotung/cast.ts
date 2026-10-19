@@ -23,6 +23,7 @@ Inspired by [Zod](https://github.com/colinhacks/zod) and [tRPC](https://github.c
 - Explicit type conversion
 - Right-to-the-point error message
 - Static type inference
+- JSON Schema export for Ajv, OpenAPI, and LLM tool parameters
 - Composable: builder functions (i.e. `optional()`) return new parser instance
 - Convenience: support auto-infer parser from from sample value
 - Safe: [Parse, don't type-check](https://news.ycombinator.com/item?id=25220139)
@@ -804,6 +805,53 @@ function dict<K extends PropertyKey, V>(
 // alias
 let record = dict
 ```
+
+## JSON Schema
+
+Every parser exposes a `jsonSchema` getter, so a composed parser tree can drive
+Ajv validation, an OpenAPI document, or LLM tool parameters.
+
+**Example**:
+
+```typescript
+import { object, string, int, array } from 'cast.ts'
+
+let userParser = object({
+  name: string({ minLength: 1 }),
+  age: int({ min: 0 }),
+  tags: array(string()),
+})
+
+console.log(userParser.jsonSchema)
+// {
+//   type: 'object',
+//   properties: {
+//     name: { type: 'string', minLength: 1 },
+//     age: { type: 'integer', minimum: 0 },
+//     tags: { type: 'array', items: { type: 'string' } },
+//   },
+//   required: ['name', 'age', 'tags'],
+// }
+```
+
+**Supported keywords**: `description`, `type`, `const`, `enum`, `anyOf`,
+`allOf`, `properties`, `required`, `propertyNames`, `additionalProperties`,
+`items`, `minItems`, `maxItems`, `minimum`, `maximum`, `minLength`,
+`maxLength`, `pattern`, `format`.
+
+The output is portable JSON Schema: no Ajv-specific keywords are used, so it
+works with `strict` mode and plain tooling.
+
+**Limitations**:
+
+- `date()` describes its input, because it returns a `Date`: `anyOf` of an
+  ISO-like string (`2026-10-19T07:16:58.199Z`, or without a timezone for local
+  time) and epoch milliseconds (`1663372800000`).
+- `timestamp()`, `dateString()`, `timeString()` and `date()` cannot enforce
+  `min`/`max`: JSON Schema has no portable string-range keyword, so the bounds
+  are recorded in `description` and still enforced by `parse()`.
+- `dict()` with a numeric key parser approximates the keys with `propertyNames`,
+  since JSON object keys are always strings.
 
 ## Acknowledgments
 
