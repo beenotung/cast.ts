@@ -142,6 +142,15 @@ function toType(input: unknown): string {
   return typeof input
 }
 
+/**
+ * e.g. ' ("2022-09")', or nothing for an empty string, where `toType` already
+ * says 'empty string'
+ */
+function valueSuffix(input: unknown): string {
+  if (input === '') return ''
+  return ` (${JSON.stringify(input)})`
+}
+
 export type StringOptions = {
   nonEmpty?: boolean
   /** alias for `nonEmpty` with opposite meaning; takes precedence when both are set */
@@ -1285,7 +1294,7 @@ export function date(options: DateOptions & CustomSampleOptions<Date> = {}) {
           name: context.name,
           typePrefix: context.typePrefix,
           expectedType,
-          reason: 'got ' + toType(input) + ` (${JSON.stringify(input)})`,
+          reason: 'got ' + toType(input) + valueSuffix(input),
           reasonSuffix: context.reasonSuffix,
         })
       }
@@ -1407,7 +1416,7 @@ function parseDateInString(
       name: context.name,
       typePrefix: context.typePrefix,
       expectedType,
-      reason: 'got ' + toType(input) + ` (${JSON.stringify(input)})`,
+      reason: 'got ' + toType(input) + valueSuffix(input),
       reasonSuffix: context.reasonSuffix,
     })
   }
@@ -1568,7 +1577,7 @@ function parseDateString(
       name: context.name,
       typePrefix: context.typePrefix,
       expectedType,
-      reason: 'got ' + toType(input) + ` (${JSON.stringify(input)})`,
+      reason: 'got ' + toType(input) + valueSuffix(input),
       reasonSuffix: context.reasonSuffix,
     })
   }
@@ -1799,7 +1808,7 @@ function parseTimeString(
       name: context.name,
       typePrefix: context.typePrefix,
       expectedType,
-      reason: 'got ' + toType(input) + ` (${JSON.stringify(input)})`,
+      reason: 'got ' + toType(input) + valueSuffix(input),
       reasonSuffix: context.reasonSuffix,
     })
   }
