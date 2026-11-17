@@ -1981,6 +1981,22 @@ describe('email parser', () => {
       'user_name@example.com',
     )
   })
+  it('should reject a unicode local part', () => {
+    expect(() => email().parse('josé@example.net')).to.throws(
+      'Invalid email, local part should be a valid email local part',
+    )
+  })
+  it('should reject a local part with a misplaced dot', () => {
+    for (let value of [
+      '.user@example.com',
+      'user.@example.com',
+      'user..name@example.com',
+    ]) {
+      expect(() => email().parse(value), value).to.throws(
+        'Invalid email, local part should be a valid email local part',
+      )
+    }
+  })
   it('should pass matched domain', () => {
     expect(
       email({ domain: 'example.net' }).parse('user@example.net'),

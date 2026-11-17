@@ -596,6 +596,18 @@ export function email(
         reasonSuffix: context.reasonSuffix,
       })
     }
+    // ASCII only, and dots must sit between characters
+    let hasBadDot =
+      local.startsWith('.') || local.endsWith('.') || local.includes('..')
+    if (hasBadDot || !/^[A-Za-z0-9._%+-]+$/.test(local)) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'local part should be a valid email local part',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     let domainParts = domain.split('.')
     if (domainParts.length < 2 || domainParts.some(part => part.length === 0)) {
       throw new InvalidInputError({
