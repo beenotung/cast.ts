@@ -1944,6 +1944,43 @@ describe('email parser', () => {
       email({ domain: 'example.net' }).parse('user@example.com'),
     ).to.throws('Invalid email, domain should be "example.net"')
   })
+  it('should reject an invalid domain label', () => {
+    for (let value of [
+      'user@exa_mple.com',
+      'user@ex ample.com',
+      'user@-example.com',
+      'user@example-.com',
+    ]) {
+      expect(() => email().parse(value), value).to.throws(
+        'Invalid email, domain part should be a valid hostname',
+      )
+    }
+  })
+  it('should reject missing @', () => {
+    expect(() => email().parse('user.example.com')).to.throws(
+      'Invalid email, should contain "@" and a domain',
+    )
+  })
+  it('should reject an empty local part', () => {
+    expect(() => email().parse('@example.com')).to.throws(
+      'Invalid email, should contain a local part before "@"',
+    )
+  })
+  it('should reject multiple @', () => {
+    expect(() => email().parse('a@b@c.com')).to.throws(
+      'Invalid email, should contain only one "@"',
+    )
+  })
+  it('should reject whitespace in the local part', () => {
+    expect(() => email().parse('user name@example.com')).to.throws(
+      'Invalid email, local part should not contain whitespace',
+    )
+  })
+  it('should allow underscore in the local part', () => {
+    expect(email().parse('user_name@example.com')).to.equals(
+      'user_name@example.com',
+    )
+  })
   it('should pass matched domain', () => {
     expect(
       email({ domain: 'example.net' }).parse('user@example.net'),

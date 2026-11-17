@@ -540,7 +540,6 @@ const defaultUrlSampleProps: SampleProps<string> = {
   randomSample: () => 'https://www.example.net/users/' + randomId(),
 }
 
-let emailRegex = /^.+?@(.+)$/
 export type EmailOptions = StringOptions & {
   domain?: string
   case?: 'lower' | 'upper' | 'unchanged' // default 'unchanged'
@@ -558,17 +557,45 @@ export function email(
       ...context,
       overrideType: expectedType,
     })
-    let match = email.match(emailRegex)
-    if (!match) {
+    let at = email.indexOf('@')
+    if (at === -1) {
       throw new InvalidInputError({
         name: context.name,
         typePrefix: context.typePrefix,
         expectedType,
-        reason: 'should contains "@" and domain',
+        reason: 'should contain "@" and a domain',
         reasonSuffix: context.reasonSuffix,
       })
     }
-    let domain = match[1]
+    if (at === 0) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'should contain a local part before "@"',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    if (email.indexOf('@', at + 1) !== -1) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'should contain only one "@"',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    let local = email.slice(0, at)
+    let domain = email.slice(at + 1)
+    if (/\s/.test(local)) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'local part should not contain whitespace',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
     let domainParts = domain.split('.')
     if (domainParts.length < 2 || domainParts.some(part => part.length === 0)) {
       throw new InvalidInputError({
@@ -576,6 +603,21 @@ export function email(
         typePrefix: context.typePrefix,
         expectedType,
         reason: 'domain part is incomplete',
+        reasonSuffix: context.reasonSuffix,
+      })
+    }
+    // domain labels are hostnames: letters, digits and hyphens, with no
+    // leading or trailing hyphen (RFC 1123); underscores are not allowed
+    if (
+      !domainParts.every(part =>
+        /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(part),
+      )
+    ) {
+      throw new InvalidInputError({
+        name: context.name,
+        typePrefix: context.typePrefix,
+        expectedType,
+        reason: 'domain part should be a valid hostname',
         reasonSuffix: context.reasonSuffix,
       })
     }
