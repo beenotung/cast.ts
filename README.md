@@ -154,6 +154,7 @@ The field name decorators can be used in combination in any order.
   - [or/union](#or--union) (for union type)
   - [and/intersect/intersection](#and--intersect--intersection) (for intersection object type)
   - [dict/record](#dict--record) (for key-value pairs)
+  - describe (attach or override a description) — see [JSON Schema](#json-schema)
 
 ## Parser Types and Usage Examples
 
@@ -852,6 +853,35 @@ console.log(userParser.jsonSchema)
 
 The output is portable JSON Schema: no Ajv-specific keywords are used, so it
 works with `strict` mode and plain tooling.
+
+**Descriptions**:
+
+Set `description` in the parser options, or override it for one usage with
+`describe(parser, text)`. Either way it becomes `jsonSchema.description`, and a
+JSDoc comment when the parser is used as an object field.
+
+```typescript
+import { object, string, optional, describe } from 'cast.ts'
+
+let name = string({ description: 'display name' })
+
+let user = object({
+  name,
+  nickname: optional(describe(name, 'nickname')),
+})
+
+// user.type:
+// {
+//   /** display name */
+//   name: string
+//   /** nickname */
+//   nickname?: string
+// }
+```
+
+The wrapper wins when both are set, so one parser can be reused with different
+field docs. Descriptions are escaped for the comment (`*/` and newlines), and
+nothing is emitted when no description is set.
 
 **Limitations**:
 

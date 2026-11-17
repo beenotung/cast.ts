@@ -13,6 +13,7 @@ import {
   d3,
   date,
   dateString,
+  describe as describeParser,
   dict,
   email,
   enums,
@@ -630,6 +631,115 @@ describe('color parser', () => {
       ],
     },
   ])
+})
+
+describe('description', () => {
+  it('should read the description from options', () => {
+    expect(string({ description: 'display name' }).jsonSchema).to.deep.equals({
+      type: 'string',
+      description: 'display name',
+    })
+  })
+  it('should support options on boolean, literal and values', () => {
+    expect(boolean(true, { description: 'agree' }).jsonSchema).to.deep.equals({
+      type: 'boolean',
+      const: true,
+      description: 'agree',
+    })
+    expect(literal('x', { description: 'kind' }).jsonSchema).to.deep.equals({
+      const: 'x',
+      type: 'string',
+      description: 'kind',
+    })
+    expect(
+      values(['a', 'b'], { description: 'role' }).jsonSchema,
+    ).to.deep.equals({
+      enum: ['a', 'b'],
+      type: 'string',
+      description: 'role',
+    })
+  })
+  it('should render field descriptions as jsdoc comments', () => {
+    let parser = object({
+      name: string({ description: 'display name' }),
+      tags: array(string(), { description: 'profile tags' }),
+    })
+    expect(parser.type).to.equals(`{
+  /** display name */
+  name: string
+  /** profile tags */
+  tags: Array<string>
+}`)
+    expect(parser.jsonSchema?.properties?.name).to.deep.equals({
+      type: 'string',
+      description: 'display name',
+    })
+  })
+  it('should render a nested object description on the parent field', () => {
+    let parser = object({
+      author: object(
+        { id: int({ description: 'author id' }) },
+        { description: 'post author' },
+      ),
+    })
+    expect(parser.type).to.equals(`{
+  /** post author */
+  author: {
+    /** author id */
+    id: number
+  }
+}`)
+  })
+  it('should support the describe() wrapper', () => {
+    let parser = describeParser(string(), 'display name')
+    expect(parser.jsonSchema).to.deep.equals({
+      type: 'string',
+      description: 'display name',
+    })
+  })
+  it('should let describe() override the option description', () => {
+    let name = string({ description: 'name' })
+    let parser = object({
+      name,
+      nickname: describeParser(name, 'nickname'),
+    })
+    expect(parser.jsonSchema?.properties?.name).to.deep.equals({
+      type: 'string',
+      description: 'name',
+    })
+    expect(parser.jsonSchema?.properties?.nickname).to.deep.equals({
+      type: 'string',
+      description: 'nickname',
+    })
+    expect(parser.type).to.equals(`{
+  /** name */
+  name: string
+  /** nickname */
+  nickname: string
+}`)
+  })
+  it('should let the outer describe() win', () => {
+    let parser = describeParser(describeParser(string(), 'inner'), 'outer')
+    expect(parser.jsonSchema).to.deep.equals({
+      type: 'string',
+      description: 'outer',
+    })
+    expect(parser.description).to.equals('outer')
+  })
+  it('should leave the type unchanged without a description', () => {
+    expect(object({ name: string() }).type).to.equals(`{
+  name: string
+}`)
+  })
+  it('should escape comment terminators in the type comment', () => {
+    let parser = object({
+      name: describeParser(string(), 'line one\nline two */ end'),
+    })
+    expect(parser.type).to.equals(`{
+  /** line one line two *\\/ end */
+  name: string
+}`)
+  })
 })
 
 describe('object parser', () => {
